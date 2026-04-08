@@ -1,7 +1,23 @@
 <template>
   <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f2f5;">
-    <el-card style="width: 400px; padding: 20px;" shadow="always">
-      <h2 style="text-align: center; color: #409EFF; margin-bottom: 20px;">💻 設備支援系統</h2>
+    <el-card style="width: 400px; padding: 20px; position: relative;" shadow="always">
+      
+      <el-button 
+        type="info" 
+        link 
+        :icon="Back" 
+        @click="goBack" 
+        style="position: absolute; top: 15px; left: 15px; font-size: 14px;"
+      >
+        返回首頁
+      </el-button>
+
+      <h2 
+        @click="handleSecretClick" 
+        style="text-align: center; color: #409EFF; margin-top: 15px; margin-bottom: 20px; user-select: none; cursor: default;"
+      >
+        💻 設備支援系統
+      </h2>
       
       <el-tabs v-model="activeTab">
         <el-tab-pane label="登入" name="login">
@@ -16,7 +32,7 @@
           </el-form>
         </el-tab-pane>
 
-        <el-tab-pane label="註冊帳號" name="register">
+        <el-tab-pane v-if="secretUnlocked" label="註冊帳號" name="register">
           <el-form>
             <el-form-item>
               <el-input v-model="registerForm.displayName" placeholder="真實姓名 (顯示用，如: 王老師)" clearable />
@@ -41,16 +57,47 @@ import { useRouter } from 'vue-router';
 import { auth } from '../firebaseConfig';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { ElMessage } from 'element-plus';
+import { Back } from '@element-plus/icons-vue'; // 🟢 引入返回圖示
 
 const router = useRouter();
 const activeTab = ref('login');
 const loading = ref(false);
 
-// 將 email 欄位改成 username
+// ================== 🟢 返回首頁邏輯 ==================
+const goBack = () => {
+  router.push('/'); // 點擊後直接導向系統首頁
+};
+
+// ================== 🟢 彩蛋解鎖邏輯 ==================
+const secretUnlocked = ref(false);
+let clickCount = 0;
+let clickTimer = null;
+
+const handleSecretClick = () => {
+  clickCount++;
+  
+  // 如果之前有計時器，先清除
+  if (clickTimer) clearTimeout(clickTimer);
+  
+  // 連續點擊 5 次解鎖
+  if (clickCount >= 5) {
+    secretUnlocked.value = true;
+    clickCount = 0; // 重置計數
+    ElMessage.success('🔓 開發者模式：已解鎖註冊功能！');
+  } else {
+    // 必須在 1 秒內連續點擊，否則重新計算
+    clickTimer = setTimeout(() => {
+      clickCount = 0;
+    }, 1000);
+  }
+};
+// ====================================================
+
+// 表單資料綁定
 const loginForm = ref({ username: '', password: '' });
 const registerForm = ref({ username: '', password: '', displayName: '' });
 
-// 用來欺騙 Firebase 的隱藏網域
+// 用來欺騙 Firebase 的隱藏網域 (讓使用者只輸入帳號就能登入)
 const FAKE_DOMAIN = '@rental.system.local';
 
 const handleLogin = async () => {
