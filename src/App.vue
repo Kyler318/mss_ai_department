@@ -4,7 +4,7 @@
   <el-container v-else style="height: 100vh;">
     <el-aside width="220px" style="background-color: #304156;">
       <div style="height: 60px; line-height: 60px; text-align: center; color: white; font-size: 18px; font-weight: bold; border-bottom: 1px solid #1f2d3d;">
-        💻 設備支援及租借系統
+        💻 資訊科技部系統
       </div>
       
       <el-menu
