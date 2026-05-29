@@ -50,8 +50,7 @@
               <el-col :span="8">
                 <el-form-item label="電話 (C5)" required><el-input v-model="m15aForm.phone" placeholder="填寫聯絡電話" /></el-form-item>
               </el-col>
-            </row>
-            <el-row :gutter="20">
+            </el-row> <el-row :gutter="20">
               <el-col :span="8">
                 <el-form-item label="職位 (I5)" required><el-input v-model="m15aForm.position" placeholder="例如：教師" /></el-form-item>
               </el-col>
@@ -119,7 +118,7 @@
                 </el-form-item>
                 <el-form-item label="時段二">
                   <div style="display: flex; align-items: center; width: 100%;">
-                    <el-input v-model="record.adjS2" placeholder="選填，例如：14:30-16:30" />
+                    <el-input v-model="record.adjS2" placeholder="選填" />
                     <span v-if="calculateHours(record.adjS2) > 0" style="margin-left: 10px; color: #67C23A; font-weight: bold; width: 50px;">{{ calculateHours(record.adjS2) }}H</span>
                   </div>
                 </el-form-item>
@@ -371,22 +370,18 @@ const exportM15A = async () => {
 
     // ================= 🟢 2.0 三天調動明細完整的「正本與副本」座標對應表 =================
     const cellMap = [
-      // Day 1: 正本(C11, E11, H11, I11) -> 副本(M11, O11, R11, S11)
       { oD: 'C11', oT: 'E11', aD: 'H11', aT: 'I11', rOD: 'M11', rOT: 'O11', rAD: 'R11', rAT: 'S11' }, 
-      // Day 2: 正本(C14, E14, H14, I14) -> 副本(M14, O14, R14, S14)
       { oD: 'C14', oT: 'E14', aD: 'H14', aT: 'I14', rOD: 'M14', rOT: 'O14', rAD: 'R14', rAT: 'S14' }, 
-      // Day 3: 正本(C17, E17, H17, I17) -> 副本(M17, O17, R17, S17)  【修正第 3 天日期為 C17】
       { oD: 'C17', oT: 'E17', aD: 'H17', aT: 'I17', rOD: 'M17', rOT: 'O17', rAD: 'R17', rAT: 'S17' }  
     ];
 
     m15aForm.value.records.forEach((r, i) => {
       const map = cellMap[i];
       
-      // 填寫原定時間 (左側正本 + 右側副本)
       if (r.origDate) {
         const formattedOrigDate = formatExcelDate(r.origDate);
-        ws.getCell(map.oD).value = formattedOrigDate;      // 正本原定日期
-        ws.getCell(map.rOD).value = formattedOrigDate;     // 副本原定日期 (M11, M14, M17)
+        ws.getCell(map.oD).value = formattedOrigDate;      
+        ws.getCell(map.rOD).value = formattedOrigDate;     
         
         const timeRangeStr = formatExcelTimeRange(r.origS1, r.origS2, r.origS3);
         
@@ -399,11 +394,10 @@ const exportM15A = async () => {
         tRight.alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
       }
       
-      // 填寫調動後時間 (左側正本 + 右側副本)
       if (r.adjDate) {
         const formattedAdjDate = formatExcelDate(r.adjDate);
-        ws.getCell(map.aD).value = formattedAdjDate;      // 正本調動後日期
-        ws.getCell(map.rAD).value = formattedAdjDate;     // 副本調動後日期 (R11, R14, R17)
+        ws.getCell(map.aD).value = formattedAdjDate;      
+        ws.getCell(map.rAD).value = formattedAdjDate;     
         
         const timeRangeStr = formatExcelTimeRange(r.adjS1, r.adjS2, r.adjS3);
         
@@ -417,7 +411,6 @@ const exportM15A = async () => {
       }
     });
 
-    // ================= 把手寫簽名貼進 B22 與 L22 裡 =================
     if (f.signatureImageBase64) {
       const rawBase64 = f.signatureImageBase64.includes(',') 
         ? f.signatureImageBase64.split(',')[1] 
@@ -439,7 +432,6 @@ const exportM15A = async () => {
       });
     }
 
-    // ================= 把當日日期寫入 B23 與 L23 裡 =================
     const todayDateStr = formatExcelDate(new Date());
 
     ws.getCell('B23').value = todayDateStr; 
