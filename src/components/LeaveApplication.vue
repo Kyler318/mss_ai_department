@@ -1,8 +1,15 @@
+沒問題！這就為你奉上「已經修復手寫板無法繪製問題」的終極完整版 `LeaveApplication.vue` 程式碼。
+
+我已經把 `activeTab` 的分頁切換監聽、畫布外框的固定高度 (`height: 200px; overflow: hidden`)，以及防干擾的 CSS 全部完美整合進去了。
+
+請將 `src/components/LeaveApplication.vue` 的內容**全部替換**為以下這段程式碼：
+
+```html
 <template>
   <div class="leave-app-page">
-    <el-tabs type="border-card">
+    <el-tabs v-model="activeTab" type="border-card">
       
-      <el-tab-pane label="📄 M15 假期申請">
+      <el-tab-pane label="📄 M15 假期申請" name="m15">
         <el-form :model="m15Form" label-width="120px" style="max-width: 800px; margin: 20px auto;">
           <el-row :gutter="20">
             <el-col :span="12">
@@ -29,7 +36,7 @@
         </el-form>
       </el-tab-pane>
 
-      <el-tab-pane label="🔄 M15A 時間調動">
+      <el-tab-pane label="🔄 M15A 時間調動" name="m15a">
         <el-form :model="m15aForm" label-width="110px" style="max-width: 950px; margin: 20px auto;">
           
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
@@ -84,6 +91,7 @@
                 <el-form-item label="時段二"><div style="display: flex; align-items: center; width: 100%;"><el-input v-model="record.origS2" placeholder="選填，例如：14:30-16:30" /><span v-if="calculateHours(record.origS2) > 0" style="margin-left: 10px; color: #E6A23C; font-weight: bold; width: 50px;">{{ calculateHours(record.origS2) }}H</span></div></el-form-item>
                 <el-form-item label="時段三"><div style="display: flex; align-items: center; width: 100%;"><el-input v-model="record.origS3" placeholder="選填，例如：18:00-21:00" /><span v-if="calculateHours(record.origS3) > 0" style="margin-left: 10px; color: #E6A23C; font-weight: bold; width: 50px;">{{ calculateHours(record.origS3) }}H</span></div></el-form-item>
               </el-col>
+              
               <el-col :span="12">
                 <div style="font-weight: bold; margin-bottom: 10px;">🔄 調動後上班時間</div>
                 <el-form-item label="日期"><el-date-picker v-model="record.adjDate" type="date" style="width: 100%;" placeholder="選擇日期" /></el-form-item>
@@ -102,14 +110,16 @@
               <el-button type="danger" plain size="small" @click="clearSignature">清除重簽</el-button>
             </div>
             
-            <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px;">
+            <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
               <Vue3Signature 
+                :key="activeTab"
                 ref="signaturePad" 
                 :sigOption="state.option" 
                 :w="'100%'" 
                 :h="'200px'" 
                 @end="saveSignature"
                 class="signature-canvas"
+                style="width: 100%; height: 100%;"
               />
             </div>
 
@@ -137,7 +147,10 @@ import { ref, reactive, onMounted, watch } from 'vue';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { ElMessage } from 'element-plus';
-import Vue3Signature from "vue3-signature"; // 🟢 引入手寫板套件
+import Vue3Signature from "vue3-signature"; 
+
+// 🟢 用來追蹤目前所在分頁，解決畫布在隱藏分頁無法初始化的問題
+const activeTab = ref('m15');
 
 // ================= 表單資料 =================
 const m15Form = ref({ name: '', position: '', dateRange: [], leaveType: '年假', reason: '' });
@@ -149,7 +162,7 @@ const m15aForm = ref({
   position: '教師',
   totalDateRange: [], 
   reason: '',
-  signatureImageBase64: '', // 🟢 用來存圖片的 Base64 字串
+  signatureImageBase64: '', 
   records: [
     { origDate: '', origS1: '', origS2: '', origS3: '', adjDate: '', adjS1: '', adjS2: '', adjS3: '' }, 
     { origDate: '', origS1: '', origS2: '', origS3: '', adjDate: '', adjS1: '', adjS2: '', adjS3: '' }, 
@@ -157,25 +170,23 @@ const m15aForm = ref({
   ]
 });
 
-// ================= 🟢 畫布簽名邏輯 =================
+// ================= 畫布簽名邏輯 =================
 const signaturePad = ref(null);
 const state = reactive({
   option: {
     penColor: "rgb(0, 0, 0)", // 簽名筆觸顏色 (黑色)
-    backgroundColor: "rgba(0,0,0,0)", // 透明背景，放到 Excel 才不會有一塊白底
-    minWidth: 2, // 筆觸粗細
+    backgroundColor: "rgba(0,0,0,0)", // 透明背景
+    minWidth: 2, 
     maxWidth: 4
   }
 });
 
-// 當滑鼠放開結束繪製時，自動把畫布轉成圖片 Base64 存起來
 const saveSignature = () => {
   if (signaturePad.value) {
     m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
   }
 };
 
-// 清除畫布
 const clearSignature = () => {
   if (signaturePad.value) {
     signaturePad.value.clear();
@@ -304,7 +315,6 @@ const exportM15 = async () => {
 
 const exportM15A = async () => {
   const f = m15aForm.value;
-  // 🚨 驗證檢查：確保畫布有東西 (signatureImageBase64 不是空的)
   if (!f.name || !f.dept || !f.phone || !f.position || !f.reason || !f.totalDateRange || f.totalDateRange.length !== 2 || !f.signatureImageBase64) {
     ElMessage.warning({
       message: '⚠️ 匯出失敗：請完整填寫「1.0 個人資料」並在「3.0 畫布上完成手寫簽名」！',
@@ -348,21 +358,17 @@ const exportM15A = async () => {
       }
     });
 
-    // ================= 🟢 3.0 把圖片貼進 B22 裡 =================
-    // 1. 將 base64 圖片加入 workbook
+    // ================= 把圖片貼進 B22 裡 =================
     const imageId = workbook.addImage({
       base64: f.signatureImageBase64,
       extension: 'png',
     });
     
-    // 2. 指定圖片要放在哪裡 (這裡設定貼在 B22)
-    // 參數是對應欄位的 index：B是1, 行是21 (因為 exceljs 從 0 開始算，B22 = col 1, row 21)
     ws.addImage(imageId, {
-      tl: { col: 1, row: 21 }, // Top-Left (從 B22 的左上角開始)
-      ext: { width: 150, height: 60 } // 設定圖片縮放尺寸 (寬 150px, 高 60px)，可根據格子大小微調
+      tl: { col: 1, row: 21 }, 
+      ext: { width: 150, height: 60 } 
     });
 
-    // 寫入當日日期到 B23
     ws.getCell('B23').value = formatExcelDate(new Date()); 
     ws.getCell('B23').alignment = { vertical: 'middle', horizontal: 'left' };
 
@@ -374,8 +380,17 @@ const exportM15A = async () => {
 </script>
 
 <style scoped>
-/* 避免行動裝置在手寫板上滑動時觸發整個網頁捲動 */
+/* 🟢 確保畫布不會被外層擋住，並且讓滑鼠變成十字 */
 .signature-canvas {
   touch-action: none;
+  cursor: crosshair;
+  display: block;
+}
+
+.signature-canvas canvas {
+  width: 100% !important;
+  height: 100% !important;
 }
 </style>
+
+```
