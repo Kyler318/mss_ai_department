@@ -406,13 +406,13 @@ const exportM15A = async () => {
       // 1. 貼在 B22 (col 1 = B, row 21 = 22行)
       ws.addImage(imageId, {
         tl: { col: 1, row: 21 }, 
-        ext: { width: 150, height: 60 } 
+        ext: { width: 130, height: 60 } 
       });
 
       // 2. 同步貼在 L22 (col 11 = L, row 21 = 22行)
       ws.addImage(imageId, {
         tl: { col: 11, row: 21 }, 
-        ext: { width: 150, height: 60 } 
+        ext: { width: 130, height: 60 } 
       });
     }
 
