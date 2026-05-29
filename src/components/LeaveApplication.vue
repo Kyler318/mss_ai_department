@@ -279,7 +279,6 @@ const personalInfo = ref({
 });
 
 // ================= 表單資料 =================
-// 🟢 加入了 manualStart, manualEnd, manualHours 用於補鐘手動輸入
 const m15Form = ref({ 
   totalDateRange: [], 
   leaveType: '有薪年假 Paid Annual leave', 
@@ -439,7 +438,7 @@ const formatExcelTimeRange = (s1, s2, s3) => {
   return lines.join('\n');
 };
 
-// ================= M15 匯出邏輯 =================
+// ================= 🟢 M15 匯出邏輯 (修復 getCell 問題，精準抓取表單名稱) =================
 const exportM15 = async () => {
   const p = personalInfo.value;
   if (!p.name || !p.position || !p.dept || !p.phone || !m15Form.value.totalDateRange || m15Form.value.totalDateRange.length !== 2) {
@@ -454,10 +453,14 @@ const exportM15 = async () => {
 
   try {
     const response = await fetch('/M15_Template.xlsx');
+    if (!response.ok) throw new Error('找不到 M15_Template.xlsx 範本，請確認檔案是否有在 public 資料夾中！');
+
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
     
-    const ws = workbook.getWorksheet(1); 
+    // 💡 絕對抓取：優先使用精確名稱「M15假期申請表」，找不到再降級抓第一頁
+    const ws = workbook.getWorksheet('M15假期申請表') || workbook.worksheets[0]; 
+    if (!ws) throw new Error('無法讀取範本中的 M15假期申請表 工作表！');
     
     const finalLeaveType = m15Form.value.leaveType === '其他 others' 
       ? `其他: ${m15Form.value.otherLeaveType}` 
@@ -486,7 +489,6 @@ const exportM15 = async () => {
       const rowNum = 10 + idx; 
       
       if (m15Form.value.leaveType === '補鐘/補假 Compansention leave') {
-        // 如果是補鐘，寫入手動輸入的純文字
         if (r.manualStart || r.manualEnd) {
           ws.getCell(`G${rowNum}`).value = r.manualStart;
           ws.getCell(`H${rowNum}`).value = r.manualEnd;
@@ -497,7 +499,6 @@ const exportM15 = async () => {
           ws.getCell(`S${rowNum}`).value = r.manualHours;
         }
       } else {
-        // 如果是一般假期，寫入日期選擇器的結果
         if (r.dateRange && r.dateRange.length === 2) {
           const hrs = calculateLeaveHours(r.dateRange);
           const startStr = formatExcelDate(r.dateRange[0]);
@@ -517,7 +518,10 @@ const exportM15 = async () => {
     const buffer = await workbook.xlsx.writeBuffer();
     saveAs(new Blob([buffer]), `M15_假期申請表_${p.name}.xlsx`);
     ElMessage.success('M15 假期申請表匯出成功！正本與副本皆已同步。');
-  } catch (err) { ElMessage.error(err.message); }
+  } catch (err) { 
+    console.error(err);
+    ElMessage.error(err.message); 
+  }
 };
 
 // ================= M15A 匯出 =================
@@ -539,9 +543,14 @@ const exportM15A = async () => {
 
   try {
     const response = await fetch('/M15_Template.xlsx');
+    if (!response.ok) throw new Error('找不到 M15_Template.xlsx 範本，請確認檔案是否有在 public 資料夾中！');
+    
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
-    let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.getWorksheet(2);
+    
+    // 💡 絕對抓取：優先使用精確名稱「M15A上班時間調動表」，找不到再降級抓第二頁或第一頁
+    let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.worksheets[1] || workbook.worksheets[0];
+    if (!ws) throw new Error('無法讀取範本中的調動表工作表！');
 
     ws.getCell('C4').value = p.name;      
     ws.getCell('I4').value = p.dept;      
@@ -613,8 +622,8 @@ const exportM15A = async () => {
     saveAs(new Blob([buffer]), `M15A_上班時間調動表_${p.name}.xlsx`);
     ElMessage.success('M15A 匯出成功！');
   } catch (err) { 
-    console.error("匯出錯誤詳細資訊:", err);
-    ElMessage.error('匯出失敗：' + err.message); 
+    console.error(err);
+    ElMessage.error(err.message); 
   }
 };
 </script>
