@@ -137,7 +137,7 @@
             <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工手寫簽署驗證</h4>
             
             <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (填寫 B22)</span>
+              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (同時自動填寫 B22 / L22)</span>
               <el-button type="danger" plain size="small" @click="clearSignature">清除重簽</el-button>
             </div>
             
@@ -156,7 +156,7 @@
 
             <el-row :gutter="20">
               <el-col :span="12">
-                <el-form-item label="簽署日期 (B23)">
+                <el-form-item label="簽署日期 (B23/L23)">
                   <el-input :value="getTodayStr()" disabled style="width: 100%;" />
                 </el-form-item>
               </el-col>
@@ -342,6 +342,7 @@ const exportM15 = async () => {
 };
 
 const exportM15A = async () => {
+  // 匯出前強迫重抓一次簽名，確保沒放開滑鼠時也能讀到
   if (signaturePad.value) {
     m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
   }
@@ -391,6 +392,7 @@ const exportM15A = async () => {
       }
     });
 
+    // ================= 🟢 把手寫簽名貼進 B22 與 L22 裡 =================
     if (f.signatureImageBase64) {
       const rawBase64 = f.signatureImageBase64.includes(',') 
         ? f.signatureImageBase64.split(',')[1] 
@@ -401,18 +403,33 @@ const exportM15A = async () => {
         extension: 'png',
       });
       
+      // 1. 貼在 B22 (col 1 = B, row 21 = 22行)
       ws.addImage(imageId, {
         tl: { col: 1, row: 21 }, 
         ext: { width: 150, height: 60 } 
       });
+
+      // 2. 同步貼在 L22 (col 11 = L, row 21 = 22行)
+      ws.addImage(imageId, {
+        tl: { col: 11, row: 21 }, 
+        ext: { width: 150, height: 60 } 
+      });
     }
 
-    ws.getCell('B23').value = formatExcelDate(new Date()); 
+    // ================= 🟢 把當日日期寫入 B23 與 L23 裡 =================
+    const todayDateStr = formatExcelDate(new Date());
+
+    // 寫入 B23
+    ws.getCell('B23').value = todayDateStr; 
     ws.getCell('B23').alignment = { vertical: 'middle', horizontal: 'left' };
+
+    // 寫入 L23
+    ws.getCell('L23').value = todayDateStr; 
+    ws.getCell('L23').alignment = { vertical: 'middle', horizontal: 'left' };
 
     const buffer = await workbook.xlsx.writeBuffer();
     saveAs(new Blob([buffer]), `M15A_上班時間調動表_${m15aForm.value.name}.xlsx`);
-    ElMessage.success('M15A 匯出成功！手寫簽名已插入。');
+    ElMessage.success('M15A 匯出成功！手寫簽名與日期已同步寫入左右複本。');
   } catch (err) { 
     console.error("匯出錯誤詳細資訊:", err);
     ElMessage.error('匯出失敗：' + err.message); 
