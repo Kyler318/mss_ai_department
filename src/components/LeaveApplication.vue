@@ -417,7 +417,7 @@ const exportM15A = async () => {
       }
     });
 
-    // ================= 把手寫簽名貼進 B22 與 L22 裡 ==================
+    // ================= 把手寫簽名貼進 B22 與 L22 裡 =================
     if (f.signatureImageBase64) {
       const rawBase64 = f.signatureImageBase64.includes(',') 
         ? f.signatureImageBase64.split(',')[1] 
