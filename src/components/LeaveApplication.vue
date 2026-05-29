@@ -33,7 +33,7 @@
         <el-form :model="m15aForm" label-width="110px" style="max-width: 950px; margin: 20px auto;">
           
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
-            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #409EFF; padding-left: 10px;">個人與調動資料 (必填)</h4>
+            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #409EFF; padding-left: 10px;">1.0 個人與調動資料 (必填)</h4>
             <el-row :gutter="20">
               <el-col :span="8">
                 <el-form-item label="姓名 (C4)" required><el-input v-model="m15aForm.name" placeholder="請輸入姓名" /></el-form-item>
@@ -65,6 +65,7 @@
                     end-placeholder="結束日期"
                     style="width: 100%;"
                   />
+                  <div style="font-size: 12px; color: #909399; margin-top: 4px;">格式將自動轉為：3月24日-3月28日</div>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -135,6 +136,22 @@
             </el-row>
           </div>
 
+          <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
+            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工簽署驗證</h4>
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="電子簽名 (B22)" required>
+                  <el-input v-model="m15aForm.signature" placeholder="請輸入完整姓名以進行電子簽署" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="簽署日期 (B23)">
+                  <el-input :value="getTodayStr()" disabled style="width: 100%;" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+
           <el-button type="success" size="large" @click="exportM15A" style="width: 100%; font-weight: bold;">
             📥 匯出 M15A 調動表 (Excel)
           </el-button>
@@ -146,7 +163,6 @@
 </template>
 
 <script setup>
-// 🟢 【修改】：引入 onMounted, watch 來處理本地儲存功能
 import { ref, onMounted, watch } from 'vue';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -162,6 +178,7 @@ const m15aForm = ref({
   position: '教師',
   totalDateRange: [], 
   reason: '',
+  signature: '', // 🟢 電子簽名變數
   records: [
     { origDate: '', origS1: '', origS2: '', origS3: '', adjDate: '', adjS1: '', adjS2: '', adjS3: '' }, 
     { origDate: '', origS1: '', origS2: '', origS3: '', adjDate: '', adjS1: '', adjS2: '', adjS3: '' }, 
@@ -169,25 +186,21 @@ const m15aForm = ref({
   ]
 });
 
-// ================= 🟢 功能：自動載入與儲存個人資料 =================
+// ================= 功能：自動載入與儲存個人資料 =================
 onMounted(() => {
-  // 網頁載入時，檢查 localStorage 裡有沒有上次存過的個人資料
   const savedInfo = localStorage.getItem('leaveAppPersonalInfo');
   if (savedInfo) {
     const info = JSON.parse(savedInfo);
-    // 自動填入 M15A 表單
     m15aForm.value.name = info.name || '';
     m15aForm.value.dept = info.dept || '資訊科技/AI輔助部';
     m15aForm.value.phone = info.phone || '';
     m15aForm.value.position = info.position || '教師';
     
-    // 同步填入 M15 申請表
     m15Form.value.name = info.name || '';
     m15Form.value.position = info.position || '教師';
   }
 });
 
-// 監聽個人資料欄位，只要有打字，就自動存進瀏覽器的 localStorage 裡
 watch(
   () => ({
     name: m15aForm.value.name,
@@ -197,18 +210,22 @@ watch(
   }),
   (newVal) => {
     localStorage.setItem('leaveAppPersonalInfo', JSON.stringify(newVal));
-    // 讓 M15 的姓名和職位也跟著同步更新
     m15Form.value.name = newVal.name;
     m15Form.value.position = newVal.position;
   },
   { deep: true }
 );
 
-// ================= 🟢 功能：自動同步日期 =================
+// ================= 功能：自動同步日期 =================
 const syncAdjDate = (record) => {
   if (record.origDate) {
-    record.adjDate = record.origDate; // 將調動後的日期設為與原定日期相同
+    record.adjDate = record.origDate;
   }
+};
+
+// 🟢 功能：取得今天日期的字串顯示在畫面上
+const getTodayStr = () => {
+  return formatExcelDate(new Date());
 };
 
 // ================= 日期與字串計算工具 =================
@@ -300,9 +317,10 @@ const exportM15 = async () => {
 // ================= 匯出 M15A =================
 const exportM15A = async () => {
   const f = m15aForm.value;
-  if (!f.name || !f.dept || !f.phone || !f.position || !f.reason || !f.totalDateRange || f.totalDateRange.length !== 2) {
+  // 🚨 驗證檢查：加入 signature 必填檢查
+  if (!f.name || !f.dept || !f.phone || !f.position || !f.reason || !f.totalDateRange || f.totalDateRange.length !== 2 || !f.signature) {
     ElMessage.warning({
-      message: '⚠️ 匯出失敗：請完整填寫「個人與調動資料」的所有必填欄位！',
+      message: '⚠️ 匯出失敗：請完整填寫「1.0 個人與調動資料」及「3.0 電子簽名」！',
       duration: 4000
     });
     return;
@@ -314,7 +332,7 @@ const exportM15A = async () => {
     await workbook.xlsx.load(await response.arrayBuffer());
     let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.getWorksheet(2);
 
-    // 個人與總日期資料
+    // 1.0 個人與總日期資料
     ws.getCell('C4').value = m15aForm.value.name;      
     ws.getCell('I4').value = m15aForm.value.dept;      
     ws.getCell('C5').value = m15aForm.value.phone;     
@@ -345,9 +363,15 @@ const exportM15A = async () => {
       }
     });
 
+    // ================= 🟢 3.0 寫入電子簽名與當日日期 (B22, B23) =================
+    ws.getCell('B22').value = f.signature; // 簽好的名字填入 B22
+    ws.getCell('B23').value = formatExcelDate(new Date()); // 當日日期填入 B23
+    ws.getCell('B22').alignment = { vertical: 'middle', horizontal: 'left' };
+    ws.getCell('B23').alignment = { vertical: 'middle', horizontal: 'left' };
+
     const buffer = await workbook.xlsx.writeBuffer();
     saveAs(new Blob([buffer]), `M15A_上班時間調動表_${m15aForm.value.name}.xlsx`);
-    ElMessage.success('M15A 匯出成功！');
+    ElMessage.success('M15A 匯出成功！簽名與日期已寫入。');
   } catch (err) { ElMessage.error(err.message); }
 };
 </script>
