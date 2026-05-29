@@ -15,17 +15,34 @@
           <el-form-item label="休假期間" required>
             <el-date-picker v-model="m15Form.dateRange" type="daterange" range-separator="至" style="width: 100%;" />
           </el-form-item>
+          
           <el-form-item label="休假類別" required>
-            <el-radio-group v-model="m15Form.leaveType">
-              <el-radio label="年假">年假</el-radio>
-              <el-radio label="病假">病假</el-radio>
-              <el-radio label="補假">補假</el-radio>
-            </el-radio-group>
+            <div style="width: 100%;">
+              <el-radio-group v-model="m15Form.leaveType" class="leave-type-group">
+                <el-radio label="有薪年假 Paid Annual leave">有薪年假 Paid Annual leave</el-radio>
+                <el-radio label="有薪病假 Paid Sick leave">有薪病假 Paid Sick leave</el-radio>
+                <el-radio label="無薪病假 No pay Sick leave">無薪病假 No pay Sick leave</el-radio>
+                <el-radio label="有薪恩恤假 Paid compassionate leave">有薪恩恤假 Paid compassionate leave</el-radio>
+                <el-radio label="有薪婚假 Paid marriage leave">有薪婚假 Paid marriage leave</el-radio>
+                <el-radio label="補鐘/補假 Compansention leave">補鐘/補假 Compansention leave(hours/holidays)</el-radio>
+                <el-radio label="銷假 Cancel leave">銷假 Cancel leave</el-radio>
+                <el-radio label="無薪假期 No pay leave">無薪假期 No pay leave</el-radio>
+                <el-radio label="其他 others">其他 others</el-radio>
+              </el-radio-group>
+              
+              <el-input 
+                v-if="m15Form.leaveType === '其他 others'" 
+                v-model="m15Form.otherLeaveType" 
+                placeholder="請註明其他假期類型..." 
+                style="margin-top: 10px;" 
+              />
+            </div>
           </el-form-item>
+          
           <el-form-item label="休假原因" required>
             <el-input v-model="m15Form.reason" type="textarea" :rows="3" />
           </el-form-item>
-          <el-button type="primary" size="large" @click="exportM15" style="width: 100%;">匯出 M15 申請表</el-button>
+          <el-button type="primary" size="large" @click="exportM15" style="width: 100%; font-weight: bold;">📥 匯出 M15 申請表 (Excel)</el-button>
         </el-form>
       </el-tab-pane>
 
@@ -33,13 +50,13 @@
         <el-form :model="m15aForm" label-width="110px" style="max-width: 950px; margin: 20px auto;">
           
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
-            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #409EFF; padding-left: 10px;">個人與調動資料 (必填)</h4>
+            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #409EFF; padding-left: 10px;">1.0 個人與調動資料 (必填)</h4>
             <el-row :gutter="20">
               <el-col :span="8">
-                <el-form-item label="姓名" required><el-input v-model="m15aForm.name" placeholder="請輸入姓名" /></el-form-item>
+                <el-form-item label="姓名 (C4)" required><el-input v-model="m15aForm.name" placeholder="請輸入姓名" /></el-form-item>
               </el-col>
               <el-col :span="8">
-                <el-form-item label="部門" required>
+                <el-form-item label="部門 (I4)" required>
                   <el-select v-model="m15aForm.dept" placeholder="請選擇部門" style="width: 100%;">
                     <el-option label="資訊科技/AI輔助部" value="資訊科技/AI輔助部" />
                     <el-option label="行政事務部" value="行政事務部" />
@@ -48,14 +65,16 @@
                 </el-form-item>
               </el-col>
               <el-col :span="8">
-                <el-form-item label="電話" required><el-input v-model="m15aForm.phone" placeholder="填寫聯絡電話" /></el-form-item>
+                <el-form-item label="電話 (C5)" required><el-input v-model="m15aForm.phone" placeholder="填寫聯絡電話" /></el-form-item>
               </el-col>
-            </el-row> <el-row :gutter="20">
+            </el-row>
+            
+            <el-row :gutter="20">
               <el-col :span="8">
-                <el-form-item label="職位" required><el-input v-model="m15aForm.position" placeholder="例如：教師" /></el-form-item>
+                <el-form-item label="職位 (I5)" required><el-input v-model="m15aForm.position" placeholder="例如：教師" /></el-form-item>
               </el-col>
               <el-col :span="16">
-                <el-form-item label="調動日期" required>
+                <el-form-item label="調動日期 (E7)" required>
                   <el-date-picker
                     v-model="m15aForm.totalDateRange"
                     type="daterange"
@@ -64,10 +83,11 @@
                     end-placeholder="結束日期"
                     style="width: 100%;"
                   />
+                  <div style="font-size: 12px; color: #909399; margin-top: 4px;">格式將自動轉為：3月24日-3月28日</div>
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-form-item label="調動原因" required>
+            <el-form-item label="調動原因 (C8)" required>
               <el-input v-model="m15aForm.reason" placeholder="請輸入原因..." />
             </el-form-item>
           </div>
@@ -132,10 +152,10 @@
           </div>
 
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
-            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">員工手寫簽署驗證</h4>
+            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工手寫簽署驗證</h4>
             
             <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名</span>
+              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (同時自動填寫 B22 / L22)</span>
               <el-button type="danger" plain size="small" @click="clearSignature">清除重簽</el-button>
             </div>
             
@@ -154,7 +174,7 @@
 
             <el-row :gutter="20">
               <el-col :span="12">
-                <el-form-item label="簽署日期">
+                <el-form-item label="簽署日期 (B23/L23)">
                   <el-input :value="getTodayStr()" disabled style="width: 100%;" />
                 </el-form-item>
               </el-col>
@@ -181,7 +201,15 @@ import Vue3Signature from "vue3-signature";
 const activeTab = ref('m15');
 
 // ================= 表單資料 =================
-const m15Form = ref({ name: '', position: '', dateRange: [], leaveType: '年假', reason: '' });
+// 🟢 新增了 otherLeaveType 變數來儲存「其他」的文字
+const m15Form = ref({ 
+  name: '', 
+  position: '', 
+  dateRange: [], 
+  leaveType: '有薪年假 Paid Annual leave', 
+  otherLeaveType: '',
+  reason: '' 
+});
 
 const m15aForm = ref({
   name: '',
@@ -317,28 +345,61 @@ const formatExcelTimeRange = (s1, s2, s3) => {
   return lines.join('\n');
 };
 
+// ================= M15 匯出 =================
 const exportM15 = async () => {
   if (!m15Form.value.name || !m15Form.value.position || !m15Form.value.reason || !m15Form.value.dateRange || m15Form.value.dateRange.length === 0) {
     ElMessage.warning('請完整填寫 M15 的所有必填欄位！');
     return;
   }
+  
+  // 🟢 檢查：如果選了「其他」，必須填寫文字框
+  if (m15Form.value.leaveType === '其他 others' && !m15Form.value.otherLeaveType.trim()) {
+    ElMessage.warning('請註明其他假期類型！');
+    return;
+  }
+
   try {
     const response = await fetch('/M15_Template.xlsx');
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
-    const ws = workbook.getWorksheet(1);
-    ws.getCell('E4').value = m15Form.value.name;
-    ws.getCell('H5').value = m15Form.value.position;
-    ws.getCell('C9').value = m15Form.value.reason;
+    
+    const ws = workbook.getWorksheet(1); 
+    
+    // 判斷最終要顯示的休假類別字眼
+    const finalLeaveType = m15Form.value.leaveType === '其他 others' 
+      ? `其他: ${m15Form.value.otherLeaveType}` 
+      : m15Form.value.leaveType;
+      
+    // 為了保證不遺失資訊，我們把「假期類別」跟「原因」合併寫入原因欄位
+    const finalReason = `[休假類別: ${finalLeaveType}]\n${m15Form.value.reason}`;
+
+    // === 寫入左半部 (正本) ===
+    ws.getCell('E4').value = m15Form.value.name;       
+    ws.getCell('H5').value = m15Form.value.position;   
+    ws.getCell('C9').value = finalReason;              
+    
+    let dateStr = '';
     if (m15Form.value.dateRange?.length === 2) {
-      ws.getCell('F7').value = `${formatExcelDate(m15Form.value.dateRange[0])} 至 ${formatExcelDate(m15Form.value.dateRange[1])}`;
+      dateStr = `${formatExcelDate(m15Form.value.dateRange[0])} 至 ${formatExcelDate(m15Form.value.dateRange[1])}`;
+      ws.getCell('F7').value = dateStr;                
     }
+
+    // === 寫入右半部 (副本) ===
+    ws.getCell('O4').value = m15Form.value.name;       
+    ws.getCell('R5').value = m15Form.value.position;   
+    ws.getCell('M9').value = finalReason;              
+    
+    if (dateStr) {
+      ws.getCell('P7').value = dateStr;                
+    }
+
     const buffer = await workbook.xlsx.writeBuffer();
     saveAs(new Blob([buffer]), `M15_假期申請表_${m15Form.value.name}.xlsx`);
-    ElMessage.success('M15 匯出成功！');
+    ElMessage.success('M15 匯出成功！正本與副本資料已同步寫入。');
   } catch (err) { ElMessage.error(err.message); }
 };
 
+// ================= M15A 匯出 =================
 const exportM15A = async () => {
   if (signaturePad.value) {
     m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
@@ -360,53 +421,49 @@ const exportM15A = async () => {
     await workbook.xlsx.load(await response.arrayBuffer());
     let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.getWorksheet(2);
 
-    ws.getCell('C4').value = m15aForm.value.name;      
-    ws.getCell('I4').value = m15aForm.value.dept;      
-    ws.getCell('C5').value = m15aForm.value.phone;     
-    ws.getCell('I5').value = m15aForm.value.position;  
-    ws.getCell('E7').value = formatSummaryDateRange(m15aForm.value.totalDateRange); 
-    ws.getCell('C8').value = m15aForm.value.reason;    
+    ws.getCell('C4').value = f.name;      
+    ws.getCell('I4').value = f.dept;      
+    ws.getCell('C5').value = f.phone;     
+    ws.getCell('I5').value = f.position;  
+    ws.getCell('E7').value = formatSummaryDateRange(f.totalDateRange); 
+    ws.getCell('C8').value = f.reason;    
 
-    // ================= 🟢 2.0 三天調動明細完整的「正本與副本」座標對應表 =================
+    ws.getCell('M4').value = f.name;      
+    ws.getCell('S4').value = f.dept;      
+    ws.getCell('M5').value = f.phone;     
+    ws.getCell('S5').value = f.position;  
+    ws.getCell('O7').value = formatSummaryDateRange(f.totalDateRange); 
+    ws.getCell('M8').value = f.reason;    
+
     const cellMap = [
       { oD: 'C11', oT: 'E11', aD: 'H11', aT: 'I11', rOD: 'M11', rOT: 'O11', rAD: 'R11', rAT: 'S11' }, 
       { oD: 'C14', oT: 'E14', aD: 'H14', aT: 'I14', rOD: 'M14', rOT: 'O14', rAD: 'R14', rAT: 'S14' }, 
       { oD: 'C17', oT: 'E17', aD: 'H17', aT: 'I17', rOD: 'M17', rOT: 'O17', rAD: 'R17', rAT: 'S17' }  
     ];
 
-    m15aForm.value.records.forEach((r, i) => {
+    f.records.forEach((r, i) => {
       const map = cellMap[i];
-      
       if (r.origDate) {
         const formattedOrigDate = formatExcelDate(r.origDate);
-        ws.getCell(map.oD).value = formattedOrigDate;      
-        ws.getCell(map.rOD).value = formattedOrigDate;     
+        ws.getCell(map.oD).value = formattedOrigDate;
+        ws.getCell(map.rOD).value = formattedOrigDate; 
         
         const timeRangeStr = formatExcelTimeRange(r.origS1, r.origS2, r.origS3);
-        
-        const tLeft = ws.getCell(map.oT);
-        tLeft.value = timeRangeStr;
-        tLeft.alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
-        
-        const tRight = ws.getCell(map.rOT);
-        tRight.value = timeRangeStr;
-        tRight.alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
+        ws.getCell(map.oT).value = timeRangeStr;
+        ws.getCell(map.oT).alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
+        ws.getCell(map.rOT).value = timeRangeStr;      
+        ws.getCell(map.rOT).alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
       }
-      
       if (r.adjDate) {
         const formattedAdjDate = formatExcelDate(r.adjDate);
-        ws.getCell(map.aD).value = formattedAdjDate;      
-        ws.getCell(map.rAD).value = formattedAdjDate;     
+        ws.getCell(map.aD).value = formattedAdjDate;
+        ws.getCell(map.rAD).value = formattedAdjDate; 
         
         const timeRangeStr = formatExcelTimeRange(r.adjS1, r.adjS2, r.adjS3);
-        
-        const tLeft = ws.getCell(map.aT);
-        tLeft.value = timeRangeStr;
-        tLeft.alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
-        
-        const tRight = ws.getCell(map.rAT);
-        tRight.value = timeRangeStr;
-        tRight.alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
+        ws.getCell(map.aT).value = timeRangeStr;
+        ws.getCell(map.aT).alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
+        ws.getCell(map.rAT).value = timeRangeStr;     
+        ws.getCell(map.rAT).alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
       }
     });
 
@@ -420,28 +477,19 @@ const exportM15A = async () => {
         extension: 'png',
       });
       
-      ws.addImage(imageId, {
-        tl: { col: 1, row: 21 }, 
-        ext: { width: 150, height: 60 } 
-      });
-
-      ws.addImage(imageId, {
-        tl: { col: 11, row: 21 }, 
-        ext: { width: 150, height: 60 } 
-      });
+      ws.addImage(imageId, { tl: { col: 1, row: 21 }, ext: { width: 150, height: 60 } });
+      ws.addImage(imageId, { tl: { col: 11, row: 21 }, ext: { width: 150, height: 60 } });
     }
 
     const todayDateStr = formatExcelDate(new Date());
-
     ws.getCell('B23').value = todayDateStr; 
     ws.getCell('B23').alignment = { vertical: 'middle', horizontal: 'left' };
-
     ws.getCell('L23').value = todayDateStr; 
     ws.getCell('L23').alignment = { vertical: 'middle', horizontal: 'left' };
 
     const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), `M15A_上班時間調動表_${m15aForm.value.name}.xlsx`);
-    ElMessage.success('M15A 匯出成功！正本與副本的所有日期、時間、簽名皆已同步。');
+    saveAs(new Blob([buffer]), `M15A_上班時間調動表_${f.name}.xlsx`);
+    ElMessage.success('M15A 匯出成功！正本與副本已 100% 同步！');
   } catch (err) { 
     console.error("匯出錯誤詳細資訊:", err);
     ElMessage.error('匯出失敗：' + err.message); 
@@ -458,5 +506,14 @@ const exportM15A = async () => {
 .signature-canvas canvas {
   width: 100% !important;
   height: 100% !important;
+}
+
+/* 🟢 讓選項垂直排列，更乾淨俐落 */
+.leave-type-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 5px;
 }
 </style>
