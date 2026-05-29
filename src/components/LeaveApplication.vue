@@ -33,13 +33,13 @@
         <el-form :model="m15aForm" label-width="110px" style="max-width: 950px; margin: 20px auto;">
           
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
-            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #409EFF; padding-left: 10px;">1.0 個人與調動資料 (必填)</h4>
+            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #409EFF; padding-left: 10px;">個人與調動資料 (必填)</h4>
             <el-row :gutter="20">
               <el-col :span="8">
-                <el-form-item label="姓名 (C4)" required><el-input v-model="m15aForm.name" placeholder="請輸入姓名" /></el-form-item>
+                <el-form-item label="姓名" required><el-input v-model="m15aForm.name" placeholder="請輸入姓名" /></el-form-item>
               </el-col>
               <el-col :span="8">
-                <el-form-item label="部門 (I4)" required>
+                <el-form-item label="部門" required>
                   <el-select v-model="m15aForm.dept" placeholder="請選擇部門" style="width: 100%;">
                     <el-option label="資訊科技/AI輔助部" value="資訊科技/AI輔助部" />
                     <el-option label="行政事務部" value="行政事務部" />
@@ -48,14 +48,14 @@
                 </el-form-item>
               </el-col>
               <el-col :span="8">
-                <el-form-item label="電話 (C5)" required><el-input v-model="m15aForm.phone" placeholder="填寫聯絡電話" /></el-form-item>
+                <el-form-item label="電話" required><el-input v-model="m15aForm.phone" placeholder="填寫聯絡電話" /></el-form-item>
               </el-col>
             </el-row> <el-row :gutter="20">
               <el-col :span="8">
-                <el-form-item label="職位 (I5)" required><el-input v-model="m15aForm.position" placeholder="例如：教師" /></el-form-item>
+                <el-form-item label="職位" required><el-input v-model="m15aForm.position" placeholder="例如：教師" /></el-form-item>
               </el-col>
               <el-col :span="16">
-                <el-form-item label="調動日期 (E7)" required>
+                <el-form-item label="調動日期" required>
                   <el-date-picker
                     v-model="m15aForm.totalDateRange"
                     type="daterange"
@@ -68,7 +68,7 @@
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-form-item label="調動原因 (C8)" required>
+            <el-form-item label="調動原因" required>
               <el-input v-model="m15aForm.reason" placeholder="請輸入原因..." />
             </el-form-item>
           </div>
@@ -133,10 +133,10 @@
           </div>
 
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
-            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工手寫簽署驗證</h4>
+            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">員工手寫簽署驗證</h4>
             
             <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (同時自動填寫 B22 / L22)</span>
+              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名</span>
               <el-button type="danger" plain size="small" @click="clearSignature">清除重簽</el-button>
             </div>
             
@@ -155,7 +155,7 @@
 
             <el-row :gutter="20">
               <el-col :span="12">
-                <el-form-item label="簽署日期 (B23/L23)">
+                <el-form-item label="簽署日期">
                   <el-input :value="getTodayStr()" disabled style="width: 100%;" />
                 </el-form-item>
               </el-col>
