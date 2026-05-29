@@ -1,3 +1,178 @@
+<template>
+  <div class="leave-app-page">
+    <el-tabs v-model="activeTab" type="border-card">
+      
+      <el-tab-pane label="📄 M15 假期申請" name="m15">
+        <el-form :model="m15Form" label-width="120px" style="max-width: 800px; margin: 20px auto;">
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="姓名" required><el-input v-model="m15Form.name" placeholder="請輸入姓名" /></el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="職位" required><el-input v-model="m15Form.position" placeholder="例如：教師" /></el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item label="休假期間" required>
+            <el-date-picker v-model="m15Form.dateRange" type="daterange" range-separator="至" style="width: 100%;" />
+          </el-form-item>
+          <el-form-item label="休假類別" required>
+            <el-radio-group v-model="m15Form.leaveType">
+              <el-radio label="年假">年假</el-radio>
+              <el-radio label="病假">病假</el-radio>
+              <el-radio label="補假">補假</el-radio>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item label="休假原因" required>
+            <el-input v-model="m15Form.reason" type="textarea" :rows="3" />
+          </el-form-item>
+          <el-button type="primary" size="large" @click="exportM15" style="width: 100%;">匯出 M15 申請表</el-button>
+        </el-form>
+      </el-tab-pane>
+
+      <el-tab-pane label="🔄 M15A 時間調動" name="m15a">
+        <el-form :model="m15aForm" label-width="110px" style="max-width: 950px; margin: 20px auto;">
+          
+          <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
+            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #409EFF; padding-left: 10px;">1.0 個人與調動資料 (必填)</h4>
+            <el-row :gutter="20">
+              <el-col :span="8">
+                <el-form-item label="姓名 (C4)" required><el-input v-model="m15aForm.name" placeholder="請輸入姓名" /></el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="部門 (I4)" required>
+                  <el-select v-model="m15aForm.dept" placeholder="請選擇部門" style="width: 100%;">
+                    <el-option label="資訊科技/AI輔助部" value="資訊科技/AI輔助部" />
+                    <el-option label="行政事務部" value="行政事務部" />
+                    <el-option label="教學事務部" value="教學事務部" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="電話 (C5)" required><el-input v-model="m15aForm.phone" placeholder="填寫聯絡電話" /></el-form-item>
+              </el-col>
+            </el-row>
+            <el-row :gutter="20">
+              <el-col :span="8">
+                <el-form-item label="職位 (I5)" required><el-input v-model="m15aForm.position" placeholder="例如：教師" /></el-form-item>
+              </el-col>
+              <el-col :span="16">
+                <el-form-item label="調動日期 (E7)" required>
+                  <el-date-picker
+                    v-model="m15aForm.totalDateRange"
+                    type="daterange"
+                    range-separator="至"
+                    start-placeholder="開始日期"
+                    end-placeholder="結束日期"
+                    style="width: 100%;"
+                  />
+                  <div style="font-size: 12px; color: #909399; margin-top: 4px;">格式將自動轉為：3月24日-3月28日</div>
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-form-item label="調動原因 (C8)" required>
+              <el-input v-model="m15aForm.reason" placeholder="請輸入原因..." />
+            </el-form-item>
+          </div>
+
+          <div v-for="(record, index) in m15aForm.records" :key="index" style="background: #fdfdfd; padding: 20px; border: 1px solid #ebeef5; border-radius: 8px; margin-bottom: 20px;">
+            <h4 style="margin-top: 0; color: #409EFF;">📅 調動項目 {{ index + 1 }}</h4>
+            <el-row :gutter="30">
+              <el-col :span="12" style="border-right: 1px dashed #dcdfe6;">
+                <div style="font-weight: bold; margin-bottom: 10px;">🕒 原定上班時間</div>
+                <el-form-item label="日期">
+                  <el-date-picker 
+                    v-model="record.origDate" 
+                    type="date" 
+                    style="width: 100%;" 
+                    placeholder="選擇日期" 
+                    @change="syncAdjDate(record)"
+                  />
+                </el-form-item>
+                <el-form-item label="時段一">
+                  <div style="display: flex; align-items: center; width: 100%;">
+                    <el-input v-model="record.origS1" placeholder="例如：09:00-13:30" />
+                    <span v-if="calculateHours(record.origS1) > 0" style="margin-left: 10px; color: #E6A23C; font-weight: bold; width: 50px;">{{ calculateHours(record.origS1) }}H</span>
+                  </div>
+                </el-form-item>
+                <el-form-item label="時段二">
+                  <div style="display: flex; align-items: center; width: 100%;">
+                    <el-input v-model="record.origS2" placeholder="選填，例如：14:30-16:30" />
+                    <span v-if="calculateHours(record.origS2) > 0" style="margin-left: 10px; color: #E6A23C; font-weight: bold; width: 50px;">{{ calculateHours(record.origS2) }}H</span>
+                  </div>
+                </el-form-item>
+                <el-form-item label="時段三">
+                  <div style="display: flex; align-items: center; width: 100%;">
+                    <el-input v-model="record.origS3" placeholder="選填，例如：18:00-21:00" />
+                    <span v-if="calculateHours(record.origS3) > 0" style="margin-left: 10px; color: #E6A23C; font-weight: bold; width: 50px;">{{ calculateHours(record.origS3) }}H</span>
+                  </div>
+                </el-form-item>
+              </el-col>
+              
+              <el-col :span="12">
+                <div style="font-weight: bold; margin-bottom: 10px;">🔄 調動後上班時間</div>
+                <el-form-item label="日期"><el-date-picker v-model="record.adjDate" type="date" style="width: 100%;" placeholder="選擇日期" /></el-form-item>
+                <el-form-item label="時段一">
+                  <div style="display: flex; align-items: center; width: 100%;">
+                    <el-input v-model="record.adjS1" placeholder="例如：09:00-13:30" />
+                    <span v-if="calculateHours(record.adjS1) > 0" style="margin-left: 10px; color: #67C23A; font-weight: bold; width: 50px;">{{ calculateHours(record.adjS1) }}H</span>
+                  </div>
+                </el-form-item>
+                <el-form-item label="時段二">
+                  <div style="display: flex; align-items: center; width: 100%;">
+                    <el-input v-model="record.adjS2" placeholder="選填，例如：14:30-16:30" />
+                    <span v-if="calculateHours(record.adjS2) > 0" style="margin-left: 10px; color: #67C23A; font-weight: bold; width: 50px;">{{ calculateHours(record.adjS2) }}H</span>
+                  </div>
+                </el-form-item>
+                <el-form-item label="時段三">
+                  <div style="display: flex; align-items: center; width: 100%;">
+                    <el-input v-model="record.adjS3" placeholder="選填" />
+                    <span v-if="calculateHours(record.adjS3) > 0" style="margin-left: 10px; color: #67C23A; font-weight: bold; width: 50px;">{{ calculateHours(record.adjS3) }}H</span>
+                  </div>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+
+          <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
+            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工手寫簽署驗證</h4>
+            
+            <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (填寫 B22)</span>
+              <el-button type="danger" plain size="small" @click="clearSignature">清除重簽</el-button>
+            </div>
+            
+            <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
+              <Vue3Signature 
+                :key="activeTab"
+                ref="signaturePad" 
+                :sigOption="state.option" 
+                :w="'100%'" 
+                :h="'200px'" 
+                @end="saveSignature"
+                class="signature-canvas"
+                style="width: 100%; height: 100%;"
+              />
+            </div>
+
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="簽署日期 (B23)">
+                  <el-input :value="getTodayStr()" disabled style="width: 100%;" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+
+          <el-button type="success" size="large" @click="exportM15A" style="width: 100%; font-weight: bold;">
+            📥 匯出 M15A 調動表 (Excel)
+          </el-button>
+        </el-form>
+      </el-tab-pane>
+
+    </el-tabs>
+  </div>
+</template>
+
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue';
 import ExcelJS from 'exceljs';
@@ -167,16 +342,15 @@ const exportM15 = async () => {
 };
 
 const exportM15A = async () => {
-  // 🟢 1. 匯出前「強制」再抓取一次畫布內容 (避免使用者畫完沒放開滑鼠就按匯出)
   if (signaturePad.value) {
     m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
   }
 
   const f = m15aForm.value;
   
-  if (!f.name || !f.dept || !f.phone || !f.position || !f.reason || !f.totalDateRange || f.totalDateRange.length !== 2) {
+  if (!f.name || !f.dept || !f.phone || !f.position || !f.reason || !f.totalDateRange || f.totalDateRange.length !== 2 || !f.signatureImageBase64) {
     ElMessage.warning({
-      message: '⚠️ 匯出失敗：請完整填寫「1.0 個人資料」！',
+      message: '⚠️ 匯出失敗：請完整填寫個人資料並完成手寫簽名！',
       duration: 4000
     });
     return;
@@ -217,9 +391,7 @@ const exportM15A = async () => {
       }
     });
 
-    // ================= 🟢 3.0 把圖片貼進 B22 裡 (修復 ExcelJS 的格式問題) =================
     if (f.signatureImageBase64) {
-      // ⚠️ 關鍵修復：把 'data:image/png;base64,' 這段垃圾文字切掉，只留真正的圖片編碼
       const rawBase64 = f.signatureImageBase64.includes(',') 
         ? f.signatureImageBase64.split(',')[1] 
         : f.signatureImageBase64;
@@ -247,3 +419,15 @@ const exportM15A = async () => {
   }
 };
 </script>
+
+<style scoped>
+.signature-canvas {
+  touch-action: none;
+  cursor: crosshair;
+  display: block;
+}
+.signature-canvas canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+</style>
