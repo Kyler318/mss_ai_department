@@ -33,13 +33,13 @@
         <el-form :model="m15aForm" label-width="110px" style="max-width: 950px; margin: 20px auto;">
           
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
-            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #409EFF; padding-left: 10px;">個人與調動資料</h4>
+            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #409EFF; padding-left: 10px;">1.0 個人與調動資料 (必填)</h4>
             <el-row :gutter="20">
               <el-col :span="8">
-                <el-form-item label="姓名" required><el-input v-model="m15aForm.name" placeholder="請輸入姓名" /></el-form-item>
+                <el-form-item label="姓名 (C4)" required><el-input v-model="m15aForm.name" placeholder="請輸入姓名" /></el-form-item>
               </el-col>
               <el-col :span="8">
-                <el-form-item label="部門" required>
+                <el-form-item label="部門 (I4)" required>
                   <el-select v-model="m15aForm.dept" placeholder="請選擇部門" style="width: 100%;">
                     <el-option label="資訊科技/AI輔助部" value="資訊科技/AI輔助部" />
                     <el-option label="行政事務部" value="行政事務部" />
@@ -48,15 +48,15 @@
                 </el-form-item>
               </el-col>
               <el-col :span="8">
-                <el-form-item label="電話" required><el-input v-model="m15aForm.phone" placeholder="填寫聯絡電話" /></el-form-item>
+                <el-form-item label="電話 (C5)" required><el-input v-model="m15aForm.phone" placeholder="填寫聯絡電話" /></el-form-item>
               </el-col>
             </el-row>
             <el-row :gutter="20">
               <el-col :span="8">
-                <el-form-item label="職位" required><el-input v-model="m15aForm.position" placeholder="例如：教師" /></el-form-item>
+                <el-form-item label="職位 (I5)" required><el-input v-model="m15aForm.position" placeholder="例如：教師" /></el-form-item>
               </el-col>
               <el-col :span="16">
-                <el-form-item label="調動日期" required>
+                <el-form-item label="調動日期 (E7)" required>
                   <el-date-picker
                     v-model="m15aForm.totalDateRange"
                     type="daterange"
@@ -65,10 +65,11 @@
                     end-placeholder="結束日期"
                     style="width: 100%;"
                   />
+                  <div style="font-size: 12px; color: #909399; margin-top: 4px;">格式將自動轉為：3月24日-3月28日</div>
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-form-item label="調動原因" required>
+            <el-form-item label="調動原因 (C8)" required>
               <el-input v-model="m15aForm.reason" placeholder="請輸入原因..." />
             </el-form-item>
           </div>
@@ -78,7 +79,16 @@
             <el-row :gutter="30">
               <el-col :span="12" style="border-right: 1px dashed #dcdfe6;">
                 <div style="font-weight: bold; margin-bottom: 10px;">🕒 原定上班時間</div>
-                <el-form-item label="日期"><el-date-picker v-model="record.origDate" type="date" style="width: 100%;" placeholder="選擇日期" /></el-form-item>
+                
+                <el-form-item label="日期">
+                  <el-date-picker 
+                    v-model="record.origDate" 
+                    type="date" 
+                    style="width: 100%;" 
+                    placeholder="選擇日期" 
+                    @change="syncAdjDate(record)"
+                  />
+                </el-form-item>
                 
                 <el-form-item label="時段一">
                   <div style="display: flex; align-items: center; width: 100%;">
@@ -118,7 +128,7 @@
                 </el-form-item>
                 <el-form-item label="時段三">
                   <div style="display: flex; align-items: center; width: 100%;">
-                    <el-input v-model="record.adjS3" placeholder="選填，例如：18:00-21:00" />
+                    <el-input v-model="record.adjS3" placeholder="選填" />
                     <span v-if="calculateHours(record.adjS3) > 0" style="margin-left: 10px; color: #67C23A; font-weight: bold; width: 50px;">{{ calculateHours(record.adjS3) }}H</span>
                   </div>
                 </el-form-item>
@@ -137,7 +147,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+// 🟢 【修改】：引入 onMounted, watch 來處理本地儲存功能
+import { ref, onMounted, watch } from 'vue';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { ElMessage } from 'element-plus';
@@ -158,6 +169,48 @@ const m15aForm = ref({
     { origDate: '', origS1: '', origS2: '', origS3: '', adjDate: '', adjS1: '', adjS2: '', adjS3: '' }  
   ]
 });
+
+// ================= 🟢 功能：自動載入與儲存個人資料 =================
+onMounted(() => {
+  // 網頁載入時，檢查 localStorage 裡有沒有上次存過的個人資料
+  const savedInfo = localStorage.getItem('leaveAppPersonalInfo');
+  if (savedInfo) {
+    const info = JSON.parse(savedInfo);
+    // 自動填入 M15A 表單
+    m15aForm.value.name = info.name || '';
+    m15aForm.value.dept = info.dept || '資訊科技/AI輔助部';
+    m15aForm.value.phone = info.phone || '';
+    m15aForm.value.position = info.position || '教師';
+    
+    // 同步填入 M15 申請表
+    m15Form.value.name = info.name || '';
+    m15Form.value.position = info.position || '教師';
+  }
+});
+
+// 監聽個人資料欄位，只要有打字，就自動存進瀏覽器的 localStorage 裡
+watch(
+  () => ({
+    name: m15aForm.value.name,
+    dept: m15aForm.value.dept,
+    phone: m15aForm.value.phone,
+    position: m15aForm.value.position
+  }),
+  (newVal) => {
+    localStorage.setItem('leaveAppPersonalInfo', JSON.stringify(newVal));
+    // 讓 M15 的姓名和職位也跟著同步更新
+    m15Form.value.name = newVal.name;
+    m15Form.value.position = newVal.position;
+  },
+  { deep: true }
+);
+
+// ================= 🟢 功能：自動同步日期 =================
+const syncAdjDate = (record) => {
+  if (record.origDate) {
+    record.adjDate = record.origDate; // 將調動後的日期設為與原定日期相同
+  }
+};
 
 // ================= 日期與字串計算工具 =================
 const formatExcelDate = (dateInput) => {
@@ -223,7 +276,6 @@ const formatExcelTimeRange = (s1, s2, s3) => {
 
 // ================= 匯出 M15 =================
 const exportM15 = async () => {
-  // M15 匯出防呆檢查
   if (!m15Form.value.name || !m15Form.value.position || !m15Form.value.reason || !m15Form.value.dateRange || m15Form.value.dateRange.length === 0) {
     ElMessage.warning('請完整填寫 M15 的所有必填欄位！');
     return;
@@ -248,14 +300,13 @@ const exportM15 = async () => {
 
 // ================= 匯出 M15A =================
 const exportM15A = async () => {
-  // 🚨 M15A 必填攔截防呆檢查 🚨
   const f = m15aForm.value;
   if (!f.name || !f.dept || !f.phone || !f.position || !f.reason || !f.totalDateRange || f.totalDateRange.length !== 2) {
     ElMessage.warning({
-      message: '⚠️ 匯出失敗：請完整填寫「個人與調動資料」的所有必填欄位！',
+      message: '⚠️ 匯出失敗：請完整填寫「1.0 個人與調動資料」的所有必填欄位！',
       duration: 4000
     });
-    return; // 終止程式執行，不匯出檔案
+    return;
   }
 
   try {
@@ -264,7 +315,7 @@ const exportM15A = async () => {
     await workbook.xlsx.load(await response.arrayBuffer());
     let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.getWorksheet(2);
 
-    //個人與總日期資料
+    // 1.0 個人與總日期資料
     ws.getCell('C4').value = m15aForm.value.name;      
     ws.getCell('I4').value = m15aForm.value.dept;      
     ws.getCell('C5').value = m15aForm.value.phone;     
