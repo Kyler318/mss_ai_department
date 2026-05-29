@@ -33,7 +33,7 @@
         <el-form :model="m15aForm" label-width="110px" style="max-width: 950px; margin: 20px auto;">
           
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
-            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #409EFF; padding-left: 10px;">個人與調動資料 (必填)</h4>
+            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #409EFF; padding-left: 10px;">1.0 個人與調動資料 (必填)</h4>
             <el-row :gutter="20">
               <el-col :span="8">
                 <el-form-item label="姓名 (C4)" required><el-input v-model="m15aForm.name" placeholder="請輸入姓名" /></el-form-item>
@@ -50,7 +50,7 @@
               <el-col :span="8">
                 <el-form-item label="電話 (C5)" required><el-input v-model="m15aForm.phone" placeholder="填寫聯絡電話" /></el-form-item>
               </el-col>
-            </el-row>
+            </row>
             <el-row :gutter="20">
               <el-col :span="8">
                 <el-form-item label="職位 (I5)" required><el-input v-model="m15aForm.position" placeholder="例如：教師" /></el-form-item>
@@ -134,10 +134,10 @@
           </div>
 
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
-            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">員工手寫簽署驗證</h4>
+            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工手寫簽署驗證</h4>
             
             <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名</span>
+              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (同時自動填寫 B22 / L22)</span>
               <el-button type="danger" plain size="small" @click="clearSignature">清除重簽</el-button>
             </div>
             
@@ -156,7 +156,7 @@
 
             <el-row :gutter="20">
               <el-col :span="12">
-                <el-form-item label="簽署日期">
+                <el-form-item label="簽署日期 (B23/L23)">
                   <el-input :value="getTodayStr()" disabled style="width: 100%;" />
                 </el-form-item>
               </el-col>
@@ -342,7 +342,6 @@ const exportM15 = async () => {
 };
 
 const exportM15A = async () => {
-  // 匯出前強迫重抓一次簽名，確保沒放開滑鼠時也能讀到
   if (signaturePad.value) {
     m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
   }
@@ -370,29 +369,55 @@ const exportM15A = async () => {
     ws.getCell('E7').value = formatSummaryDateRange(m15aForm.value.totalDateRange); 
     ws.getCell('C8').value = m15aForm.value.reason;    
 
+    // ================= 🟢 2.0 三天調動明細完整的「正本與副本」座標對應表 =================
     const cellMap = [
-      { oD: 'C11', oT: 'E11', aD: 'H11', aT: 'I11' }, 
-      { oD: 'C14', oT: 'E14', aD: 'H14', aT: 'I14' }, 
-      { oD: 'D17', oT: 'E17', aD: 'H17', aT: 'I17' }  
+      // Day 1: 正本(C11, E11, H11, I11) -> 副本(M11, O11, R11, S11)
+      { oD: 'C11', oT: 'E11', aD: 'H11', aT: 'I11', rOD: 'M11', rOT: 'O11', rAD: 'R11', rAT: 'S11' }, 
+      // Day 2: 正本(C14, E14, H14, I14) -> 副本(M14, O14, R14, S14)
+      { oD: 'C14', oT: 'E14', aD: 'H14', aT: 'I14', rOD: 'M14', rOT: 'O14', rAD: 'R14', rAT: 'S14' }, 
+      // Day 3: 正本(C17, E17, H17, I17) -> 副本(M17, O17, R17, S17)  【修正第 3 天日期為 C17】
+      { oD: 'C17', oT: 'E17', aD: 'H17', aT: 'I17', rOD: 'M17', rOT: 'O17', rAD: 'R17', rAT: 'S17' }  
     ];
 
     m15aForm.value.records.forEach((r, i) => {
       const map = cellMap[i];
+      
+      // 填寫原定時間 (左側正本 + 右側副本)
       if (r.origDate) {
-        ws.getCell(map.oD).value = formatExcelDate(r.origDate);
-        const t = ws.getCell(map.oT);
-        t.value = formatExcelTimeRange(r.origS1, r.origS2, r.origS3);
-        t.alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
+        const formattedOrigDate = formatExcelDate(r.origDate);
+        ws.getCell(map.oD).value = formattedOrigDate;      // 正本原定日期
+        ws.getCell(map.rOD).value = formattedOrigDate;     // 副本原定日期 (M11, M14, M17)
+        
+        const timeRangeStr = formatExcelTimeRange(r.origS1, r.origS2, r.origS3);
+        
+        const tLeft = ws.getCell(map.oT);
+        tLeft.value = timeRangeStr;
+        tLeft.alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
+        
+        const tRight = ws.getCell(map.rOT);
+        tRight.value = timeRangeStr;
+        tRight.alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
       }
+      
+      // 填寫調動後時間 (左側正本 + 右側副本)
       if (r.adjDate) {
-        ws.getCell(map.aD).value = formatExcelDate(r.adjDate);
-        const t = ws.getCell(map.aT);
-        t.value = formatExcelTimeRange(r.adjS1, r.adjS2, r.adjS3);
-        t.alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
+        const formattedAdjDate = formatExcelDate(r.adjDate);
+        ws.getCell(map.aD).value = formattedAdjDate;      // 正本調動後日期
+        ws.getCell(map.rAD).value = formattedAdjDate;     // 副本調動後日期 (R11, R14, R17)
+        
+        const timeRangeStr = formatExcelTimeRange(r.adjS1, r.adjS2, r.adjS3);
+        
+        const tLeft = ws.getCell(map.aT);
+        tLeft.value = timeRangeStr;
+        tLeft.alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
+        
+        const tRight = ws.getCell(map.rAT);
+        tRight.value = timeRangeStr;
+        tRight.alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
       }
     });
 
-    // ================= 🟢 把手寫簽名貼進 B22 與 L22 裡 =================
+    // ================= 把手寫簽名貼進 B22 與 L22 裡 =================
     if (f.signatureImageBase64) {
       const rawBase64 = f.signatureImageBase64.includes(',') 
         ? f.signatureImageBase64.split(',')[1] 
@@ -403,33 +428,29 @@ const exportM15A = async () => {
         extension: 'png',
       });
       
-      // 1. 貼在 B22 (col 1 = B, row 21 = 22行)
       ws.addImage(imageId, {
         tl: { col: 1, row: 21 }, 
-        ext: { width: 130, height: 60 } 
+        ext: { width: 150, height: 60 } 
       });
 
-      // 2. 同步貼在 L22 (col 11 = L, row 21 = 22行)
       ws.addImage(imageId, {
         tl: { col: 11, row: 21 }, 
-        ext: { width: 130, height: 60 } 
+        ext: { width: 150, height: 60 } 
       });
     }
 
-    // ================= 🟢 把當日日期寫入 B23 與 L23 裡 =================
+    // ================= 把當日日期寫入 B23 與 L23 裡 =================
     const todayDateStr = formatExcelDate(new Date());
 
-    // 寫入 B23
     ws.getCell('B23').value = todayDateStr; 
     ws.getCell('B23').alignment = { vertical: 'middle', horizontal: 'left' };
 
-    // 寫入 L23
     ws.getCell('L23').value = todayDateStr; 
     ws.getCell('L23').alignment = { vertical: 'middle', horizontal: 'left' };
 
     const buffer = await workbook.xlsx.writeBuffer();
     saveAs(new Blob([buffer]), `M15A_上班時間調動表_${m15aForm.value.name}.xlsx`);
-    ElMessage.success('M15A 匯出成功！手寫簽名與日期已同步寫入左右複本。');
+    ElMessage.success('M15A 匯出成功！正本與副本的所有日期、時間、簽名皆已同步。');
   } catch (err) { 
     console.error("匯出錯誤詳細資訊:", err);
     ElMessage.error('匯出失敗：' + err.message); 
