@@ -3,7 +3,7 @@
     <el-tabs v-model="activeTab" type="border-card">
       
       <el-tab-pane label="📄 M15 假期申請" name="m15">
-        <el-form :model="m15Form" label-width="120px" style="max-width: 800px; margin: 20px auto;">
+        <el-form :model="m15Form" label-width="130px" style="max-width: 800px; margin: 20px auto;">
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="姓名" required><el-input v-model="m15Form.name" placeholder="請輸入姓名" /></el-form-item>
@@ -12,8 +12,9 @@
               <el-form-item label="職位" required><el-input v-model="m15Form.position" placeholder="例如：教師" /></el-form-item>
             </el-col>
           </el-row>
-          <el-form-item label="休假期間" required>
-            <el-date-picker v-model="m15Form.dateRange" type="daterange" range-separator="至" style="width: 100%;" />
+
+          <el-form-item label="整個休假時段 (G7)" required>
+            <el-input v-model="m15Form.totalTimeRange" placeholder="例如：6月10日 09:00-17:30" />
           </el-form-item>
           
           <el-form-item label="休假類別" required>
@@ -38,10 +39,33 @@
               />
             </div>
           </el-form-item>
-          
-          <el-form-item label="休假原因" required>
-            <el-input v-model="m15Form.reason" type="textarea" :rows="3" />
+
+          <el-form-item label="實際休假時段明細" required>
+            <div style="background: #fafafa; padding: 15px; border-radius: 8px; border: 1px solid #ebeef5; width: 100%;">
+              
+              <div v-for="(record, index) in m15Form.records" :key="index" style="margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                <span style="width: 65px; font-weight: bold; color: #606266;">第 {{ index + 1 }} 筆：</span>
+                <el-input v-model="record.start" placeholder="開始時間 (如 09:00)" style="width: 150px;" />
+                <span>至</span>
+                <el-input v-model="record.end" placeholder="結束時間 (如 12:00)" style="width: 150px;" />
+                
+                <span v-if="calculateDiffHours(record.start, record.end) > 0" style="color: #67C23A; font-weight: bold; margin-left: 10px; width: 80px;">
+                  ⏱️ {{ calculateDiffHours(record.start, record.end) }} 小時
+                </span>
+                
+                <el-button v-if="m15Form.records.length > 1" type="danger" plain size="small" @click="removeM15Record(index)">
+                  ❌ 刪除
+                </el-button>
+              </div>
+              
+              <el-button type="success" plain size="small" @click="addM15Record" style="margin-top: 5px;">
+                ➕ 新增下一筆時段
+              </el-button>
+              
+              <div style="font-size: 12px; color: #909399; margin-top: 10px;">格式請輸入如 09:00 至 13:30，匯出時會自動依序填寫至 Excel 的第 10, 11, 12... 行。</div>
+            </div>
           </el-form-item>
+          
           <el-button type="primary" size="large" @click="exportM15" style="width: 100%; font-weight: bold;">📥 匯出 M15 申請表 (Excel)</el-button>
         </el-form>
       </el-tab-pane>
@@ -114,13 +138,13 @@
                 </el-form-item>
                 <el-form-item label="時段二">
                   <div style="display: flex; align-items: center; width: 100%;">
-                    <el-input v-model="record.origS2" placeholder="選填，例如：14:30-16:30" />
+                    <el-input v-model="record.origS2" placeholder="選填" />
                     <span v-if="calculateHours(record.origS2) > 0" style="margin-left: 10px; color: #E6A23C; font-weight: bold; width: 50px;">{{ calculateHours(record.origS2) }}H</span>
                   </div>
                 </el-form-item>
                 <el-form-item label="時段三">
                   <div style="display: flex; align-items: center; width: 100%;">
-                    <el-input v-model="record.origS3" placeholder="選填，例如：18:00-21:00" />
+                    <el-input v-model="record.origS3" placeholder="選填" />
                     <span v-if="calculateHours(record.origS3) > 0" style="margin-left: 10px; color: #E6A23C; font-weight: bold; width: 50px;">{{ calculateHours(record.origS3) }}H</span>
                   </div>
                 </el-form-item>
@@ -201,15 +225,26 @@ import Vue3Signature from "vue3-signature";
 const activeTab = ref('m15');
 
 // ================= 表單資料 =================
-// 🟢 新增了 otherLeaveType 變數來儲存「其他」的文字
 const m15Form = ref({ 
   name: '', 
   position: '', 
-  dateRange: [], 
+  totalTimeRange: '', // 整個休假的時段 (G7)
   leaveType: '有薪年假 Paid Annual leave', 
   otherLeaveType: '',
-  reason: '' 
+  records: [ 
+    // 預設先給 1 筆明細欄位
+    { start: '', end: '' }
+  ]
 });
+
+// 🟢 M15 新增/刪除時段的功能函式
+const addM15Record = () => {
+  m15Form.value.records.push({ start: '', end: '' });
+};
+
+const removeM15Record = (index) => {
+  m15Form.value.records.splice(index, 1);
+};
 
 const m15aForm = ref({
   name: '',
@@ -301,6 +336,24 @@ const formatSummaryDateRange = (range) => {
   return `${d1.getMonth() + 1}月${d1.getDate()}日-${d2.getMonth() + 1}月${d2.getDate()}日`;
 };
 
+// 計算兩個時間點的差值 (如 "09:00" 到 "13:30" => 4.5)
+const calculateDiffHours = (start, end) => {
+  if (!start || !end) return 0;
+  const parseTime = (t) => {
+    const parts = t.replace(/\s+/g, '').split(':');
+    if (parts.length === 2) {
+      return parseInt(parts[0], 10) + parseInt(parts[1], 10) / 60;
+    }
+    return null;
+  };
+  const startH = parseTime(start);
+  const endH = parseTime(end);
+  if (startH !== null && endH !== null && endH >= startH) {
+    return parseFloat((endH - startH).toFixed(2));
+  }
+  return 0;
+};
+
 const calculateHours = (timeStr) => {
   if (!timeStr) return 0;
   const str = timeStr.replace(/\s+/g, '');
@@ -345,14 +398,13 @@ const formatExcelTimeRange = (s1, s2, s3) => {
   return lines.join('\n');
 };
 
-// ================= M15 匯出 =================
+// ================= 🟢 M15 匯出邏輯 =================
 const exportM15 = async () => {
-  if (!m15Form.value.name || !m15Form.value.position || !m15Form.value.reason || !m15Form.value.dateRange || m15Form.value.dateRange.length === 0) {
-    ElMessage.warning('請完整填寫 M15 的所有必填欄位！');
+  if (!m15Form.value.name || !m15Form.value.position || !m15Form.value.totalTimeRange) {
+    ElMessage.warning('請完整填寫姓名、職位與整個休假時段！');
     return;
   }
   
-  // 🟢 檢查：如果選了「其他」，必須填寫文字框
   if (m15Form.value.leaveType === '其他 others' && !m15Form.value.otherLeaveType.trim()) {
     ElMessage.warning('請註明其他假期類型！');
     return;
@@ -362,40 +414,45 @@ const exportM15 = async () => {
     const response = await fetch('/M15_Template.xlsx');
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
-    
     const ws = workbook.getWorksheet(1); 
     
-    // 判斷最終要顯示的休假類別字眼
     const finalLeaveType = m15Form.value.leaveType === '其他 others' 
       ? `其他: ${m15Form.value.otherLeaveType}` 
       : m15Form.value.leaveType;
       
-    // 為了保證不遺失資訊，我們把「假期類別」跟「原因」合併寫入原因欄位
-    const finalReason = `[休假類別: ${finalLeaveType}]\n${m15Form.value.reason}`;
-
     // === 寫入左半部 (正本) ===
     ws.getCell('E4').value = m15Form.value.name;       
     ws.getCell('H5').value = m15Form.value.position;   
-    ws.getCell('C9').value = finalReason;              
-    
-    let dateStr = '';
-    if (m15Form.value.dateRange?.length === 2) {
-      dateStr = `${formatExcelDate(m15Form.value.dateRange[0])} 至 ${formatExcelDate(m15Form.value.dateRange[1])}`;
-      ws.getCell('F7').value = dateStr;                
-    }
+    ws.getCell('G7').value = m15Form.value.totalTimeRange; 
+    ws.getCell('C9').value = `[假期類別]\n${finalLeaveType}`; 
 
     // === 寫入右半部 (副本) ===
     ws.getCell('O4').value = m15Form.value.name;       
     ws.getCell('R5').value = m15Form.value.position;   
-    ws.getCell('M9').value = finalReason;              
-    
-    if (dateStr) {
-      ws.getCell('P7').value = dateStr;                
-    }
+    ws.getCell('Q7').value = m15Form.value.totalTimeRange; 
+    ws.getCell('M9').value = `[假期類別]\n${finalLeaveType}`; 
+
+    // === 🟢 寫入「無限擴充」的明細時段 ===
+    m15Form.value.records.forEach((r, idx) => {
+      const rowNum = 10 + idx; // 自動變成 10, 11, 12, 13...
+      if (r.start && r.end) {
+        const hrs = calculateDiffHours(r.start, r.end);
+        
+        // 正本 (G, H, I 欄)
+        ws.getCell(`G${rowNum}`).value = r.start;
+        ws.getCell(`H${rowNum}`).value = r.end;
+        ws.getCell(`I${rowNum}`).value = hrs > 0 ? `${hrs}H` : '';
+
+        // 副本 (Q, R, S 欄)
+        ws.getCell(`Q${rowNum}`).value = r.start;
+        ws.getCell(`R${rowNum}`).value = r.end;
+        ws.getCell(`S${rowNum}`).value = hrs > 0 ? `${hrs}H` : '';
+      }
+    });
 
     const buffer = await workbook.xlsx.writeBuffer();
     saveAs(new Blob([buffer]), `M15_假期申請表_${m15Form.value.name}.xlsx`);
-    ElMessage.success('M15 匯出成功！正本與副本資料已同步寫入。');
+    ElMessage.success('M15 假期申請表匯出成功！');
   } catch (err) { ElMessage.error(err.message); }
 };
 
@@ -489,7 +546,7 @@ const exportM15A = async () => {
 
     const buffer = await workbook.xlsx.writeBuffer();
     saveAs(new Blob([buffer]), `M15A_上班時間調動表_${f.name}.xlsx`);
-    ElMessage.success('M15A 匯出成功！正本與副本已 100% 同步！');
+    ElMessage.success('M15A 匯出成功！');
   } catch (err) { 
     console.error("匯出錯誤詳細資訊:", err);
     ElMessage.error('匯出失敗：' + err.message); 
@@ -508,7 +565,6 @@ const exportM15A = async () => {
   height: 100% !important;
 }
 
-/* 🟢 讓選項垂直排列，更乾淨俐落 */
 .leave-type-group {
   display: flex;
   flex-direction: column;
