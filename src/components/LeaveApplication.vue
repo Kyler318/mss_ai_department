@@ -79,71 +79,41 @@
             <el-row :gutter="30">
               <el-col :span="12" style="border-right: 1px dashed #dcdfe6;">
                 <div style="font-weight: bold; margin-bottom: 10px;">🕒 原定上班時間</div>
-                
-                <el-form-item label="日期">
-                  <el-date-picker 
-                    v-model="record.origDate" 
-                    type="date" 
-                    style="width: 100%;" 
-                    placeholder="選擇日期" 
-                    @change="syncAdjDate(record)"
-                  />
-                </el-form-item>
-                
-                <el-form-item label="時段一">
-                  <div style="display: flex; align-items: center; width: 100%;">
-                    <el-input v-model="record.origS1" placeholder="例如：09:00-13:30" />
-                    <span v-if="calculateHours(record.origS1) > 0" style="margin-left: 10px; color: #E6A23C; font-weight: bold; width: 50px;">{{ calculateHours(record.origS1) }}H</span>
-                  </div>
-                </el-form-item>
-                <el-form-item label="時段二">
-                  <div style="display: flex; align-items: center; width: 100%;">
-                    <el-input v-model="record.origS2" placeholder="選填，例如：14:30-16:30" />
-                    <span v-if="calculateHours(record.origS2) > 0" style="margin-left: 10px; color: #E6A23C; font-weight: bold; width: 50px;">{{ calculateHours(record.origS2) }}H</span>
-                  </div>
-                </el-form-item>
-                <el-form-item label="時段三">
-                  <div style="display: flex; align-items: center; width: 100%;">
-                    <el-input v-model="record.origS3" placeholder="選填，例如：18:00-21:00" />
-                    <span v-if="calculateHours(record.origS3) > 0" style="margin-left: 10px; color: #E6A23C; font-weight: bold; width: 50px;">{{ calculateHours(record.origS3) }}H</span>
-                  </div>
-                </el-form-item>
+                <el-form-item label="日期"><el-date-picker v-model="record.origDate" type="date" style="width: 100%;" placeholder="選擇日期" @change="syncAdjDate(record)"/></el-form-item>
+                <el-form-item label="時段一"><div style="display: flex; align-items: center; width: 100%;"><el-input v-model="record.origS1" placeholder="例如：09:00-13:30" /><span v-if="calculateHours(record.origS1) > 0" style="margin-left: 10px; color: #E6A23C; font-weight: bold; width: 50px;">{{ calculateHours(record.origS1) }}H</span></div></el-form-item>
+                <el-form-item label="時段二"><div style="display: flex; align-items: center; width: 100%;"><el-input v-model="record.origS2" placeholder="選填，例如：14:30-16:30" /><span v-if="calculateHours(record.origS2) > 0" style="margin-left: 10px; color: #E6A23C; font-weight: bold; width: 50px;">{{ calculateHours(record.origS2) }}H</span></div></el-form-item>
+                <el-form-item label="時段三"><div style="display: flex; align-items: center; width: 100%;"><el-input v-model="record.origS3" placeholder="選填，例如：18:00-21:00" /><span v-if="calculateHours(record.origS3) > 0" style="margin-left: 10px; color: #E6A23C; font-weight: bold; width: 50px;">{{ calculateHours(record.origS3) }}H</span></div></el-form-item>
               </el-col>
-
               <el-col :span="12">
                 <div style="font-weight: bold; margin-bottom: 10px;">🔄 調動後上班時間</div>
                 <el-form-item label="日期"><el-date-picker v-model="record.adjDate" type="date" style="width: 100%;" placeholder="選擇日期" /></el-form-item>
-                
-                <el-form-item label="時段一">
-                  <div style="display: flex; align-items: center; width: 100%;">
-                    <el-input v-model="record.adjS1" placeholder="例如：09:00-13:30" />
-                    <span v-if="calculateHours(record.adjS1) > 0" style="margin-left: 10px; color: #67C23A; font-weight: bold; width: 50px;">{{ calculateHours(record.adjS1) }}H</span>
-                  </div>
-                </el-form-item>
-                <el-form-item label="時段二">
-                  <div style="display: flex; align-items: center; width: 100%;">
-                    <el-input v-model="record.adjS2" placeholder="選填，例如：14:30-16:30" />
-                    <span v-if="calculateHours(record.adjS2) > 0" style="margin-left: 10px; color: #67C23A; font-weight: bold; width: 50px;">{{ calculateHours(record.adjS2) }}H</span>
-                  </div>
-                </el-form-item>
-                <el-form-item label="時段三">
-                  <div style="display: flex; align-items: center; width: 100%;">
-                    <el-input v-model="record.adjS3" placeholder="選填" />
-                    <span v-if="calculateHours(record.adjS3) > 0" style="margin-left: 10px; color: #67C23A; font-weight: bold; width: 50px;">{{ calculateHours(record.adjS3) }}H</span>
-                  </div>
-                </el-form-item>
+                <el-form-item label="時段一"><div style="display: flex; align-items: center; width: 100%;"><el-input v-model="record.adjS1" placeholder="例如：09:00-13:30" /><span v-if="calculateHours(record.adjS1) > 0" style="margin-left: 10px; color: #67C23A; font-weight: bold; width: 50px;">{{ calculateHours(record.adjS1) }}H</span></div></el-form-item>
+                <el-form-item label="時段二"><div style="display: flex; align-items: center; width: 100%;"><el-input v-model="record.adjS2" placeholder="選填，例如：14:30-16:30" /><span v-if="calculateHours(record.adjS2) > 0" style="margin-left: 10px; color: #67C23A; font-weight: bold; width: 50px;">{{ calculateHours(record.adjS2) }}H</span></div></el-form-item>
+                <el-form-item label="時段三"><div style="display: flex; align-items: center; width: 100%;"><el-input v-model="record.adjS3" placeholder="選填" /><span v-if="calculateHours(record.adjS3) > 0" style="margin-left: 10px; color: #67C23A; font-weight: bold; width: 50px;">{{ calculateHours(record.adjS3) }}H</span></div></el-form-item>
               </el-col>
             </el-row>
           </div>
 
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
-            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工簽署驗證</h4>
+            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工手寫簽署驗證</h4>
+            
+            <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (填寫 B22)</span>
+              <el-button type="danger" plain size="small" @click="clearSignature">清除重簽</el-button>
+            </div>
+            
+            <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px;">
+              <Vue3Signature 
+                ref="signaturePad" 
+                :sigOption="state.option" 
+                :w="'100%'" 
+                :h="'200px'" 
+                @end="saveSignature"
+                class="signature-canvas"
+              />
+            </div>
+
             <el-row :gutter="20">
-              <el-col :span="12">
-                <el-form-item label="電子簽名 (B22)" required>
-                  <el-input v-model="m15aForm.signature" placeholder="請輸入完整姓名以進行電子簽署" />
-                </el-form-item>
-              </el-col>
               <el-col :span="12">
                 <el-form-item label="簽署日期 (B23)">
                   <el-input :value="getTodayStr()" disabled style="width: 100%;" />
@@ -163,10 +133,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { ElMessage } from 'element-plus';
+import Vue3Signature from "vue3-signature"; // 🟢 引入手寫板套件
 
 // ================= 表單資料 =================
 const m15Form = ref({ name: '', position: '', dateRange: [], leaveType: '年假', reason: '' });
@@ -178,13 +149,39 @@ const m15aForm = ref({
   position: '教師',
   totalDateRange: [], 
   reason: '',
-  signature: '', // 🟢 電子簽名變數
+  signatureImageBase64: '', // 🟢 用來存圖片的 Base64 字串
   records: [
     { origDate: '', origS1: '', origS2: '', origS3: '', adjDate: '', adjS1: '', adjS2: '', adjS3: '' }, 
     { origDate: '', origS1: '', origS2: '', origS3: '', adjDate: '', adjS1: '', adjS2: '', adjS3: '' }, 
     { origDate: '', origS1: '', origS2: '', origS3: '', adjDate: '', adjS1: '', adjS2: '', adjS3: '' }  
   ]
 });
+
+// ================= 🟢 畫布簽名邏輯 =================
+const signaturePad = ref(null);
+const state = reactive({
+  option: {
+    penColor: "rgb(0, 0, 0)", // 簽名筆觸顏色 (黑色)
+    backgroundColor: "rgba(0,0,0,0)", // 透明背景，放到 Excel 才不會有一塊白底
+    minWidth: 2, // 筆觸粗細
+    maxWidth: 4
+  }
+});
+
+// 當滑鼠放開結束繪製時，自動把畫布轉成圖片 Base64 存起來
+const saveSignature = () => {
+  if (signaturePad.value) {
+    m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
+  }
+};
+
+// 清除畫布
+const clearSignature = () => {
+  if (signaturePad.value) {
+    signaturePad.value.clear();
+    m15aForm.value.signatureImageBase64 = '';
+  }
+};
 
 // ================= 功能：自動載入與儲存個人資料 =================
 onMounted(() => {
@@ -216,19 +213,16 @@ watch(
   { deep: true }
 );
 
-// ================= 功能：自動同步日期 =================
 const syncAdjDate = (record) => {
   if (record.origDate) {
     record.adjDate = record.origDate;
   }
 };
 
-// 🟢 功能：取得今天日期的字串顯示在畫面上
 const getTodayStr = () => {
   return formatExcelDate(new Date());
 };
 
-// ================= 日期與字串計算工具 =================
 const formatExcelDate = (dateInput) => {
   if (!dateInput) return '';
   const d = new Date(dateInput);
@@ -256,10 +250,8 @@ const calculateHours = (timeStr) => {
     }
     return null;
   };
-
   const startH = parseTime(start);
   const endH = parseTime(end);
-
   if (startH !== null && endH !== null && endH >= startH) {
     return parseFloat((endH - startH).toFixed(2));
   }
@@ -270,7 +262,6 @@ const formatExcelTimeRange = (s1, s2, s3) => {
   let lines = [];
   let totalHours = 0;
   const sessions = [s1, s2, s3];
-
   sessions.forEach(session => {
     if (session && session.trim()) {
       const cleanSession = session.trim().replace(/\s+/g, '');
@@ -283,20 +274,17 @@ const formatExcelTimeRange = (s1, s2, s3) => {
       }
     }
   });
-
   if (totalHours > 0) {
     lines.push(`${parseFloat(totalHours.toFixed(2))}H`);
   }
   return lines.join('\n');
 };
 
-// ================= 匯出 M15 =================
 const exportM15 = async () => {
   if (!m15Form.value.name || !m15Form.value.position || !m15Form.value.reason || !m15Form.value.dateRange || m15Form.value.dateRange.length === 0) {
     ElMessage.warning('請完整填寫 M15 的所有必填欄位！');
     return;
   }
-
   try {
     const response = await fetch('/M15_Template.xlsx');
     const workbook = new ExcelJS.Workbook();
@@ -314,13 +302,12 @@ const exportM15 = async () => {
   } catch (err) { ElMessage.error(err.message); }
 };
 
-// ================= 匯出 M15A =================
 const exportM15A = async () => {
   const f = m15aForm.value;
-  // 🚨 驗證檢查：加入 signature 必填檢查
-  if (!f.name || !f.dept || !f.phone || !f.position || !f.reason || !f.totalDateRange || f.totalDateRange.length !== 2 || !f.signature) {
+  // 🚨 驗證檢查：確保畫布有東西 (signatureImageBase64 不是空的)
+  if (!f.name || !f.dept || !f.phone || !f.position || !f.reason || !f.totalDateRange || f.totalDateRange.length !== 2 || !f.signatureImageBase64) {
     ElMessage.warning({
-      message: '⚠️ 匯出失敗：請完整填寫「1.0 個人與調動資料」及「3.0 電子簽名」！',
+      message: '⚠️ 匯出失敗：請完整填寫「1.0 個人資料」並在「3.0 畫布上完成手寫簽名」！',
       duration: 4000
     });
     return;
@@ -332,7 +319,6 @@ const exportM15A = async () => {
     await workbook.xlsx.load(await response.arrayBuffer());
     let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.getWorksheet(2);
 
-    // 1.0 個人與總日期資料
     ws.getCell('C4').value = m15aForm.value.name;      
     ws.getCell('I4').value = m15aForm.value.dept;      
     ws.getCell('C5').value = m15aForm.value.phone;     
@@ -340,7 +326,6 @@ const exportM15A = async () => {
     ws.getCell('E7').value = formatSummaryDateRange(m15aForm.value.totalDateRange); 
     ws.getCell('C8').value = m15aForm.value.reason;    
 
-    // 2.0 三天調動明細座標
     const cellMap = [
       { oD: 'C11', oT: 'E11', aD: 'H11', aT: 'I11' }, 
       { oD: 'C14', oT: 'E14', aD: 'H14', aT: 'I14' }, 
@@ -363,15 +348,34 @@ const exportM15A = async () => {
       }
     });
 
-    // ================= 🟢 3.0 寫入電子簽名與當日日期 (B22, B23) =================
-    ws.getCell('B22').value = f.signature; // 簽好的名字填入 B22
-    ws.getCell('B23').value = formatExcelDate(new Date()); // 當日日期填入 B23
-    ws.getCell('B22').alignment = { vertical: 'middle', horizontal: 'left' };
+    // ================= 🟢 3.0 把圖片貼進 B22 裡 =================
+    // 1. 將 base64 圖片加入 workbook
+    const imageId = workbook.addImage({
+      base64: f.signatureImageBase64,
+      extension: 'png',
+    });
+    
+    // 2. 指定圖片要放在哪裡 (這裡設定貼在 B22)
+    // 參數是對應欄位的 index：B是1, 行是21 (因為 exceljs 從 0 開始算，B22 = col 1, row 21)
+    ws.addImage(imageId, {
+      tl: { col: 1, row: 21 }, // Top-Left (從 B22 的左上角開始)
+      ext: { width: 150, height: 60 } // 設定圖片縮放尺寸 (寬 150px, 高 60px)，可根據格子大小微調
+    });
+
+    // 寫入當日日期到 B23
+    ws.getCell('B23').value = formatExcelDate(new Date()); 
     ws.getCell('B23').alignment = { vertical: 'middle', horizontal: 'left' };
 
     const buffer = await workbook.xlsx.writeBuffer();
     saveAs(new Blob([buffer]), `M15A_上班時間調動表_${m15aForm.value.name}.xlsx`);
-    ElMessage.success('M15A 匯出成功！簽名與日期已寫入。');
+    ElMessage.success('M15A 匯出成功！手寫簽名已插入。');
   } catch (err) { ElMessage.error(err.message); }
 };
 </script>
+
+<style scoped>
+/* 避免行動裝置在手寫板上滑動時觸發整個網頁捲動 */
+.signature-canvas {
+  touch-action: none;
+}
+</style>
