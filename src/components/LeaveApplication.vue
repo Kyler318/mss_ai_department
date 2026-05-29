@@ -78,7 +78,7 @@
                     <el-input v-model="record.manualStart" placeholder="開始 (如 3/24 14:00)" style="width: 180px;" />
                     <span>至</span>
                     <el-input v-model="record.manualEnd" placeholder="結束 (如 16:30)" style="width: 150px;" />
-                    <el-input v-model="record.manualHours" placeholder="時數 (如 2.5H)" style="width: 120px; margin-left: 10px;" />
+                    <el-input v-model="record.manualHours" placeholder="時數 (如 2.5)" style="width: 120px; margin-left: 10px;" />
                   </template>
                   
                   <template v-else>
@@ -106,8 +106,18 @@
                 
                 <div style="font-size: 12px; color: #909399; margin-top: 10px; line-height: 1.6;">
                   💡 <b>一般假期：</b>系統會自動扣除週六與週日，並按每日 7.2 小時計算。<br>
-                  💡 <b>補鐘/補假：</b>請手動輸入具體的「幾點到幾點」與「總時數」。
+                  💡 <b>補鐘/補假：</b>請手動輸入具體的「幾點到幾點」與純數字的「總時數 (例如 2.5)」。
                 </div>
+
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #dcdfe6; display: flex; justify-content: flex-end; align-items: center; gap: 25px;">
+                  <span style="font-size: 15px; color: #606266;">
+                    📅 總計休假天數 (E8)：<strong style="color: #409EFF; font-size: 18px;">{{ m15TotalDays }}</strong> 天
+                  </span>
+                  <span style="font-size: 15px; color: #606266;">
+                    ⏱️ 總計時數 (G8)：<strong style="color: #67C23A; font-size: 18px;">{{ m15TotalHoursText }}</strong>
+                  </span>
+                </div>
+
               </div>
             </el-form-item>
           </div>
@@ -153,7 +163,6 @@
                     end-placeholder="結束日期"
                     style="width: 100%;"
                   />
-                  <div style="font-size: 12px; color: #909399; margin-top: 4px;">格式將自動轉為：3月24日-3月28日</div>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -262,7 +271,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue';
+import { ref, reactive, onMounted, watch, computed } from 'vue';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { ElMessage } from 'element-plus';
@@ -347,28 +356,7 @@ watch(personalInfo, (newVal) => {
   localStorage.setItem('leaveAppPersonalInfo', JSON.stringify(newVal));
 }, { deep: true });
 
-// ================= 日期與時數計算工具 =================
-const syncAdjDate = (record) => {
-  if (record.origDate) record.adjDate = record.origDate;
-};
-
-const getTodayStr = () => {
-  return formatExcelDate(new Date());
-};
-
-const formatExcelDate = (dateInput) => {
-  if (!dateInput) return '';
-  const d = new Date(dateInput);
-  return `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日`;
-};
-
-const formatSummaryDateRange = (range) => {
-  if (!range || range.length !== 2) return '';
-  const d1 = new Date(range[0]);
-  const d2 = new Date(range[1]);
-  return `${d1.getMonth() + 1}月${d1.getDate()}日-${d2.getMonth() + 1}月${d2.getDate()}日`;
-};
-
+// ================= 🟢 智能時數與天數計算 =================
 // 計算平日天數 (乘 7.2h)
 const calculateLeaveHours = (range) => {
   if (!range || range.length !== 2) return 0;
@@ -392,6 +380,57 @@ const calculateLeaveHours = (range) => {
   }
   
   return parseFloat((count * 7.2).toFixed(2));
+};
+
+// 統整所有 records 的總時數
+const m15TotalHours = computed(() => {
+  let total = 0;
+  m15Form.value.records.forEach((r) => {
+    if (m15Form.value.leaveType === '補鐘/補假 Compansention leave') {
+      total += parseFloat(r.manualHours) || 0;
+    } else {
+      if (r.dateRange && r.dateRange.length === 2) {
+        total += calculateLeaveHours(r.dateRange);
+      }
+    }
+  });
+  return total;
+});
+
+// 換算總天數 (時數 / 7.2)
+const m15TotalDays = computed(() => {
+  return parseFloat((m15TotalHours.value / 7.2).toFixed(2));
+});
+
+// 轉換成 Excel 需要的文字格式 "X 小時 Y 分鐘"
+const m15TotalHoursText = computed(() => {
+  const hrs = m15TotalHours.value;
+  if (hrs === 0) return '0 小時 0 分鐘';
+  
+  const h = Math.floor(hrs);
+  const m = Math.round((hrs - h) * 60);
+  return `${h} 小時 ${m} 分鐘`;
+});
+
+const syncAdjDate = (record) => {
+  if (record.origDate) record.adjDate = record.origDate;
+};
+
+const getTodayStr = () => {
+  return formatExcelDate(new Date());
+};
+
+const formatExcelDate = (dateInput) => {
+  if (!dateInput) return '';
+  const d = new Date(dateInput);
+  return `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日`;
+};
+
+const formatSummaryDateRange = (range) => {
+  if (!range || range.length !== 2) return '';
+  const d1 = new Date(range[0]);
+  const d2 = new Date(range[1]);
+  return `${d1.getMonth() + 1}月${d1.getDate()}日-${d2.getMonth() + 1}月${d2.getDate()}日`;
 };
 
 const calculateHours = (timeStr) => {
@@ -438,7 +477,7 @@ const formatExcelTimeRange = (s1, s2, s3) => {
   return lines.join('\n');
 };
 
-// ================= 🟢 M15 匯出邏輯 (修復 getCell 問題，精準抓取表單名稱) =================
+// ================= 🟢 M15 匯出邏輯 (精準寫入 E8, G8 總計) =================
 const exportM15 = async () => {
   const p = personalInfo.value;
   if (!p.name || !p.position || !p.dept || !p.phone || !m15Form.value.totalDateRange || m15Form.value.totalDateRange.length !== 2) {
@@ -458,7 +497,6 @@ const exportM15 = async () => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
     
-    // 💡 絕對抓取：優先使用精確名稱「M15假期申請表」，找不到再降級抓第一頁
     const ws = workbook.getWorksheet('M15假期申請表') || workbook.worksheets[0]; 
     if (!ws) throw new Error('無法讀取範本中的 M15假期申請表 工作表！');
     
@@ -468,7 +506,7 @@ const exportM15 = async () => {
       
     const formattedTotal = `${formatExcelDate(m15Form.value.totalDateRange[0])} 至 ${formatExcelDate(m15Form.value.totalDateRange[1])}`;
 
-    // 寫入左半部 (正本)
+    // === 寫入左半部 (正本) ===
     ws.getCell('E4').value = p.name;       
     ws.getCell('H4').value = p.dept;       
     ws.getCell('E5').value = p.phone;      
@@ -476,7 +514,7 @@ const exportM15 = async () => {
     ws.getCell('G7').value = formattedTotal; 
     ws.getCell('C9').value = `[假期類別]\n${finalLeaveType}`; 
 
-    // 寫入右半部 (副本)
+    // === 寫入右半部 (副本) ===
     ws.getCell('O4').value = p.name;       
     ws.getCell('R4').value = p.dept;       
     ws.getCell('O5').value = p.phone;      
@@ -484,19 +522,33 @@ const exportM15 = async () => {
     ws.getCell('Q7').value = formattedTotal; 
     ws.getCell('M9').value = `[假期類別]\n${finalLeaveType}`; 
 
-    // 🟢 動態寫入明細時段
+    // === 🟢 寫入總計天數與總時數 (E8, G8, O8, Q8) ===
+    if (m15TotalHours.value > 0) {
+      const h = Math.floor(m15TotalHours.value);
+      const m = Math.round((m15TotalHours.value - h) * 60);
+      const excelTimeStr = `共 ${h} 小時hrs ${m} 分鐘mins`;
+
+      ws.getCell('E8').value = m15TotalDays.value; // 正本天數
+      ws.getCell('G8').value = excelTimeStr;       // 正本時數
+      
+      ws.getCell('O8').value = m15TotalDays.value; // 副本天數
+      ws.getCell('Q8').value = excelTimeStr;       // 副本時數
+    }
+
+    // === 動態寫入明細時段 (第 10, 11, 12... 行) ===
     m15Form.value.records.forEach((r, idx) => {
       const rowNum = 10 + idx; 
       
       if (m15Form.value.leaveType === '補鐘/補假 Compansention leave') {
         if (r.manualStart || r.manualEnd) {
+          const manualHrs = parseFloat(r.manualHours) || 0;
           ws.getCell(`G${rowNum}`).value = r.manualStart;
           ws.getCell(`H${rowNum}`).value = r.manualEnd;
-          ws.getCell(`I${rowNum}`).value = r.manualHours;
+          ws.getCell(`I${rowNum}`).value = manualHrs > 0 ? `${manualHrs}H` : '';
 
           ws.getCell(`Q${rowNum}`).value = r.manualStart;
           ws.getCell(`R${rowNum}`).value = r.manualEnd;
-          ws.getCell(`S${rowNum}`).value = r.manualHours;
+          ws.getCell(`S${rowNum}`).value = manualHrs > 0 ? `${manualHrs}H` : '';
         }
       } else {
         if (r.dateRange && r.dateRange.length === 2) {
@@ -548,7 +600,6 @@ const exportM15A = async () => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
     
-    // 💡 絕對抓取：優先使用精確名稱「M15A上班時間調動表」，找不到再降級抓第二頁或第一頁
     let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.worksheets[1] || workbook.worksheets[0];
     if (!ws) throw new Error('無法讀取範本中的調動表工作表！');
 
