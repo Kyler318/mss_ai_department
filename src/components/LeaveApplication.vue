@@ -69,23 +69,31 @@
               </div>
             </el-form-item>
 
-            <el-form-item label="實際休假日期" required>
+            <el-form-item label="實際休假明細" required>
               <div style="background: #fafafa; padding: 15px; border-radius: 8px; border: 1px solid #ebeef5; width: 100%;">
                 <div v-for="(record, index) in m15Form.records" :key="index" style="margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
                   <span style="width: 65px; font-weight: bold; color: #606266;">第 {{ index + 1 }} 筆：</span>
                   
-                  <el-date-picker
-                    v-model="record.dateRange"
-                    type="daterange"
-                    range-separator="至"
-                    start-placeholder="開始日期"
-                    end-placeholder="結束日期"
-                    style="width: 280px;"
-                  />
+                  <template v-if="m15Form.leaveType === '補鐘/補假 Compansention leave'">
+                    <el-input v-model="record.manualStart" placeholder="開始 (如 3/24 14:00)" style="width: 180px;" />
+                    <span>至</span>
+                    <el-input v-model="record.manualEnd" placeholder="結束 (如 16:30)" style="width: 150px;" />
+                    <el-input v-model="record.manualHours" placeholder="時數 (如 2.5H)" style="width: 120px; margin-left: 10px;" />
+                  </template>
                   
-                  <span v-if="calculateLeaveHours(record.dateRange) > 0" style="color: #67C23A; font-weight: bold; margin-left: 10px; min-width: 100px;">
-                    ⏱️ {{ calculateLeaveHours(record.dateRange) }} 小時
-                  </span>
+                  <template v-else>
+                    <el-date-picker
+                      v-model="record.dateRange"
+                      type="daterange"
+                      range-separator="至"
+                      start-placeholder="開始日期"
+                      end-placeholder="結束日期"
+                      style="width: 280px;"
+                    />
+                    <span v-if="calculateLeaveHours(record.dateRange) > 0" style="color: #67C23A; font-weight: bold; margin-left: 10px; min-width: 100px;">
+                      ⏱️ {{ calculateLeaveHours(record.dateRange) }} 小時
+                    </span>
+                  </template>
                   
                   <el-button v-if="m15Form.records.length > 1" type="danger" plain size="small" @click="removeM15Record(index)">
                     ❌ 刪除
@@ -96,8 +104,9 @@
                   ➕ 新增下一筆時段
                 </el-button>
                 
-                <div style="font-size: 12px; color: #909399; margin-top: 10px;">
-                  💡 系統會自動扣除週六與週日，僅計算星期一至五，並按每日 7.2 小時計算總時數。匯出時將自動依序寫入第 10, 11, 12... 行。
+                <div style="font-size: 12px; color: #909399; margin-top: 10px; line-height: 1.6;">
+                  💡 <b>一般假期：</b>系統會自動扣除週六與週日，並按每日 7.2 小時計算。<br>
+                  💡 <b>補鐘/補假：</b>請手動輸入具體的「幾點到幾點」與「總時數」。
                 </div>
               </div>
             </el-form-item>
@@ -144,6 +153,7 @@
                     end-placeholder="結束日期"
                     style="width: 100%;"
                   />
+                  <div style="font-size: 12px; color: #909399; margin-top: 4px;">格式將自動轉為：3月24日-3月28日</div>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -260,7 +270,7 @@ import Vue3Signature from "vue3-signature";
 
 const activeTab = ref('m15');
 
-// ================= 🟢 共用個人資料 (統一管理) =================
+// ================= 共用個人資料 (統一管理) =================
 const personalInfo = ref({
   name: '',
   dept: '資訊科技/AI輔助部',
@@ -269,17 +279,18 @@ const personalInfo = ref({
 });
 
 // ================= 表單資料 =================
+// 🟢 加入了 manualStart, manualEnd, manualHours 用於補鐘手動輸入
 const m15Form = ref({ 
-  totalDateRange: [], // 整個休假的時段 (G7)
+  totalDateRange: [], 
   leaveType: '有薪年假 Paid Annual leave', 
   otherLeaveType: '',
   records: [ 
-    { dateRange: [] } // 實際休假分段明細 (預設一筆)
+    { dateRange: [], manualStart: '', manualEnd: '', manualHours: '' } 
   ]
 });
 
 const addM15Record = () => {
-  m15Form.value.records.push({ dateRange: [] });
+  m15Form.value.records.push({ dateRange: [], manualStart: '', manualEnd: '', manualHours: '' });
 };
 
 const removeM15Record = (index) => {
@@ -359,7 +370,7 @@ const formatSummaryDateRange = (range) => {
   return `${d1.getMonth() + 1}月${d1.getDate()}日-${d2.getMonth() + 1}月${d2.getDate()}日`;
 };
 
-// 🟢 專為 M15 設計的「平日 7.2 小時」計算機
+// 計算平日天數 (乘 7.2h)
 const calculateLeaveHours = (range) => {
   if (!range || range.length !== 2) return 0;
   
@@ -375,14 +386,12 @@ const calculateLeaveHours = (range) => {
   
   while (current <= end) {
     const dayOfWeek = current.getDay();
-    // 0 是星期日, 6 是星期六 (只計算星期一到五)
     if (dayOfWeek !== 0 && dayOfWeek !== 6) {
       count++;
     }
     current.setDate(current.getDate() + 1);
   }
   
-  // 每天算 7.2 小時
   return parseFloat((count * 7.2).toFixed(2));
 };
 
@@ -430,7 +439,7 @@ const formatExcelTimeRange = (s1, s2, s3) => {
   return lines.join('\n');
 };
 
-// ================= 🟢 M15 匯出邏輯 (完整支援左正本、右副本) =================
+// ================= M15 匯出邏輯 =================
 const exportM15 = async () => {
   const p = personalInfo.value;
   if (!p.name || !p.position || !p.dept || !p.phone || !m15Form.value.totalDateRange || m15Form.value.totalDateRange.length !== 2) {
@@ -448,7 +457,6 @@ const exportM15 = async () => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
     
-    // M15 假期申請表 (通常是 Sheet 1)
     const ws = workbook.getWorksheet(1); 
     
     const finalLeaveType = m15Form.value.leaveType === '其他 others' 
@@ -457,7 +465,7 @@ const exportM15 = async () => {
       
     const formattedTotal = `${formatExcelDate(m15Form.value.totalDateRange[0])} 至 ${formatExcelDate(m15Form.value.totalDateRange[1])}`;
 
-    // === 📝 寫入左半部 (正本) ===
+    // 寫入左半部 (正本)
     ws.getCell('E4').value = p.name;       
     ws.getCell('H4').value = p.dept;       
     ws.getCell('E5').value = p.phone;      
@@ -465,7 +473,7 @@ const exportM15 = async () => {
     ws.getCell('G7').value = formattedTotal; 
     ws.getCell('C9').value = `[假期類別]\n${finalLeaveType}`; 
 
-    // === 📝 寫入右半部 (副本) ===
+    // 寫入右半部 (副本)
     ws.getCell('O4').value = p.name;       
     ws.getCell('R4').value = p.dept;       
     ws.getCell('O5').value = p.phone;      
@@ -473,23 +481,36 @@ const exportM15 = async () => {
     ws.getCell('Q7').value = formattedTotal; 
     ws.getCell('M9').value = `[假期類別]\n${finalLeaveType}`; 
 
-    // === ⏱️ 動態寫入明細時段 (自動往下 10, 11, 12... 行寫入) ===
+    // 🟢 動態寫入明細時段
     m15Form.value.records.forEach((r, idx) => {
       const rowNum = 10 + idx; 
-      if (r.dateRange && r.dateRange.length === 2) {
-        const hrs = calculateLeaveHours(r.dateRange);
-        const startStr = formatExcelDate(r.dateRange[0]);
-        const endStr = formatExcelDate(r.dateRange[1]);
-        
-        // 左側正本
-        ws.getCell(`G${rowNum}`).value = startStr;
-        ws.getCell(`H${rowNum}`).value = endStr;
-        ws.getCell(`I${rowNum}`).value = hrs > 0 ? `${hrs}H` : '';
+      
+      if (m15Form.value.leaveType === '補鐘/補假 Compansention leave') {
+        // 如果是補鐘，寫入手動輸入的純文字
+        if (r.manualStart || r.manualEnd) {
+          ws.getCell(`G${rowNum}`).value = r.manualStart;
+          ws.getCell(`H${rowNum}`).value = r.manualEnd;
+          ws.getCell(`I${rowNum}`).value = r.manualHours;
 
-        // 右側副本
-        ws.getCell(`Q${rowNum}`).value = startStr;
-        ws.getCell(`R${rowNum}`).value = endStr;
-        ws.getCell(`S${rowNum}`).value = hrs > 0 ? `${hrs}H` : '';
+          ws.getCell(`Q${rowNum}`).value = r.manualStart;
+          ws.getCell(`R${rowNum}`).value = r.manualEnd;
+          ws.getCell(`S${rowNum}`).value = r.manualHours;
+        }
+      } else {
+        // 如果是一般假期，寫入日期選擇器的結果
+        if (r.dateRange && r.dateRange.length === 2) {
+          const hrs = calculateLeaveHours(r.dateRange);
+          const startStr = formatExcelDate(r.dateRange[0]);
+          const endStr = formatExcelDate(r.dateRange[1]);
+          
+          ws.getCell(`G${rowNum}`).value = startStr;
+          ws.getCell(`H${rowNum}`).value = endStr;
+          ws.getCell(`I${rowNum}`).value = hrs > 0 ? `${hrs}H` : '';
+
+          ws.getCell(`Q${rowNum}`).value = startStr;
+          ws.getCell(`R${rowNum}`).value = endStr;
+          ws.getCell(`S${rowNum}`).value = hrs > 0 ? `${hrs}H` : '';
+        }
       }
     });
 
@@ -609,7 +630,6 @@ const exportM15A = async () => {
   height: 100% !important;
 }
 
-/* 🟢 修改：移除原本的 column 直排設定，改為自動折行的自然橫排 */
 .leave-type-group {
   display: flex;
   flex-direction: row;
