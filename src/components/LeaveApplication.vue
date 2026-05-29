@@ -33,7 +33,7 @@
         <el-form :model="m15aForm" label-width="110px" style="max-width: 950px; margin: 20px auto;">
           
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
-            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #409EFF; padding-left: 10px;">1.0 個人與調動資料 (必填)</h4>
+            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #409EFF; padding-left: 10px;">個人與調動資料 (必填)</h4>
             <el-row :gutter="20">
               <el-col :span="8">
                 <el-form-item label="姓名 (C4)" required><el-input v-model="m15aForm.name" placeholder="請輸入姓名" /></el-form-item>
@@ -65,7 +65,6 @@
                     end-placeholder="結束日期"
                     style="width: 100%;"
                   />
-                  <div style="font-size: 12px; color: #909399; margin-top: 4px;">格式將自動轉為：3月24日-3月28日</div>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -303,7 +302,7 @@ const exportM15A = async () => {
   const f = m15aForm.value;
   if (!f.name || !f.dept || !f.phone || !f.position || !f.reason || !f.totalDateRange || f.totalDateRange.length !== 2) {
     ElMessage.warning({
-      message: '⚠️ 匯出失敗：請完整填寫「1.0 個人與調動資料」的所有必填欄位！',
+      message: '⚠️ 匯出失敗：請完整填寫「個人與調動資料」的所有必填欄位！',
       duration: 4000
     });
     return;
@@ -315,7 +314,7 @@ const exportM15A = async () => {
     await workbook.xlsx.load(await response.arrayBuffer());
     let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.getWorksheet(2);
 
-    // 1.0 個人與總日期資料
+    // 個人與總日期資料
     ws.getCell('C4').value = m15aForm.value.name;      
     ws.getCell('I4').value = m15aForm.value.dept;      
     ws.getCell('C5').value = m15aForm.value.phone;     
