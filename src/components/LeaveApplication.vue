@@ -473,7 +473,7 @@ const formatExcelTimeRange = (s1, s2, s3) => {
   return lines.join('\n');
 };
 
-// ================= 🟢 M15 匯出邏輯 (修復檔案損壞問題) =================
+// ================= 🟢 M15 匯出邏輯 (單獨抓取 M15_假期申請表.xlsx) =================
 const exportM15 = async () => {
   const p = personalInfo.value;
   if (!p.name || !p.position || !p.dept || !p.phone || !m15Form.value.totalDateRange || m15Form.value.totalDateRange.length !== 2) {
@@ -487,13 +487,14 @@ const exportM15 = async () => {
   }
 
   try {
-    // 💡 讀取你最新的範本檔名
-    const response = await fetch('/M15A_假期申請表.xlsx');
-    if (!response.ok) throw new Error('找不到 M15A_假期申請表.xlsx 範本，請確認 public 資料夾的檔名！');
+    // 💡 獨立抓取 M15 專屬檔案
+    const response = await fetch('/M15_假期申請表.xlsx');
+    if (!response.ok) throw new Error('找不到 M15_假期申請表.xlsx 範本，請確認 public 資料夾中的檔名！');
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
     
+    // 優先尋找名稱，找不到就抓第一頁
     const ws = workbook.getWorksheet('M15假期申請表') || workbook.worksheets[0]; 
     if (!ws) throw new Error('無法讀取範本中的 M15假期申請表 工作表！');
     
@@ -564,17 +565,16 @@ const exportM15 = async () => {
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
-    // 💡 關鍵修復 1：加入標準的 MIME Type，避免瀏覽器下載損壞
     const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     saveAs(new Blob([buffer], { type: blobType }), `M15_假期申請表_${p.name}.xlsx`);
-    ElMessage.success('M15 假期申請表匯出成功！正本與副本皆已同步。');
+    ElMessage.success('M15 假期申請表匯出成功！');
   } catch (err) { 
     console.error(err);
     ElMessage.error(err.message); 
   }
 };
 
-// ================= 🟢 M15A 匯出 (修復檔案損壞問題) =================
+// ================= 🟢 M15A 匯出 (單獨抓取 M15A_時間調動表.xlsx) =================
 const exportM15A = async () => {
   if (signaturePad.value) {
     m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
@@ -592,14 +592,14 @@ const exportM15A = async () => {
   }
 
   try {
-    // 💡 讀取最新的範本檔名
-    const response = await fetch('/M15A_假期申請表.xlsx');
-    if (!response.ok) throw new Error('找不到 M15A_假期申請表.xlsx 範本，請確認 public 資料夾的檔名！');
+    // 💡 獨立抓取 M15A 專屬檔案
+    const response = await fetch('/M15A_時間調動表.xlsx');
+    if (!response.ok) throw new Error('找不到 M15A_時間調動表.xlsx 範本，請確認 public 資料夾中的檔名！');
     
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
     
-    let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.worksheets[1] || workbook.worksheets[0];
+    let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.worksheets[0];
     if (!ws) throw new Error('無法讀取範本中的調動表工作表！');
 
     ws.getCell('C4').value = p.name;      
@@ -658,7 +658,6 @@ const exportM15A = async () => {
         extension: 'png',
       });
       
-      // 💡 關鍵修復 2：加上 editAs: 'absolute'，防止 Excel 重新計算圖片邊界時造成檔案損毀
       ws.addImage(imageId, { tl: { col: 1, row: 21 }, ext: { width: 150, height: 60 }, editAs: 'absolute' });
       ws.addImage(imageId, { tl: { col: 11, row: 21 }, ext: { width: 150, height: 60 }, editAs: 'absolute' });
     }
@@ -670,7 +669,6 @@ const exportM15A = async () => {
     ws.getCell('L23').alignment = { vertical: 'middle', horizontal: 'left' };
 
     const buffer = await workbook.xlsx.writeBuffer();
-    // 💡 關鍵修復 1：加入標準的 MIME Type
     const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     saveAs(new Blob([buffer], { type: blobType }), `M15A_上班時間調動表_${p.name}.xlsx`);
     ElMessage.success('M15A 匯出成功！');
