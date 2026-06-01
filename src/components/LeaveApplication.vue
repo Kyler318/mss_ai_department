@@ -473,7 +473,7 @@ const formatExcelTimeRange = (s1, s2, s3) => {
   return lines.join('\n');
 };
 
-// ================= 🟢 M15 匯出邏輯 (對應 M15A_假期申請表.xlsx) =================
+// ================= 🟢 M15 匯出邏輯 (假期申請) =================
 const exportM15 = async () => {
   const p = personalInfo.value;
   if (!p.name || !p.position || !p.dept || !p.phone || !m15Form.value.totalDateRange || m15Form.value.totalDateRange.length !== 2) {
@@ -487,16 +487,14 @@ const exportM15 = async () => {
   }
 
   try {
-    // 💡 根據你的真實檔案名稱綁定
-    const response = await fetch('/M15A_假期申請表.xlsx');
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('text/html')) {
-      throw new Error('讀取失敗：找不到 M15A_假期申請表.xlsx，請確認檔名！');
-    }
+    // 💡 統一讀取唯一的 M15_Template.xlsx
+    const response = await fetch('/M15_Template.xlsx');
+    if (!response.ok) throw new Error('讀取失敗：找不到 M15_Template.xlsx 範本！');
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
     
+    // 💡 精準鎖定第一頁：M15假期申請表
     const ws = workbook.getWorksheet('M15假期申請表') || workbook.worksheets[0]; 
     if (!ws) throw new Error('無法讀取工作表！');
     
@@ -576,7 +574,7 @@ const exportM15 = async () => {
   }
 };
 
-// ================= 🟢 M15A 匯出邏輯 (對應 M15_時間調動表.xlsx) =================
+// ================= 🟢 M15A 匯出邏輯 (時間調動) =================
 const exportM15A = async () => {
   if (signaturePad.value) {
     m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
@@ -594,17 +592,15 @@ const exportM15A = async () => {
   }
 
   try {
-    // 💡 根據你的真實檔案名稱綁定
-    const response = await fetch('/M15_時間調動表.xlsx');
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('text/html')) {
-      throw new Error('讀取失敗：找不到 M15_時間調動表.xlsx，請確認檔名！');
-    }
+    // 💡 統一讀取唯一的 M15_Template.xlsx
+    const response = await fetch('/M15_Template.xlsx');
+    if (!response.ok) throw new Error('讀取失敗：找不到 M15_Template.xlsx 範本！');
     
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
     
-    let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.worksheets[0];
+    // 💡 精準鎖定第二頁：M15A上班時間調動表
+    let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.worksheets[1];
     if (!ws) throw new Error('無法讀取工作表！');
 
     ws.getCell('C4').value = p.name;      
