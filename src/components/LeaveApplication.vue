@@ -487,16 +487,20 @@ const exportM15 = async () => {
   }
 
   try {
-    // 💡 獨立抓取 M15 專屬檔案
-    const response = await fetch('/M15_假期申請表.xlsx');
-    if (!response.ok) throw new Error('找不到 M15_假期申請表.xlsx 範本，請確認 public 資料夾中的檔名！');
+    // 💡 精準讀取獨立的 M15 檔案
+    const response = await fetch('/M15.xlsx');
+    
+    // 💡 防彈機制：如果讀到的是網頁(HTML)而不是Excel，立刻報錯攔截，防止出現 Zip 錯誤
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('text/html')) {
+      throw new Error('讀取失敗：系統找不到 M15.xlsx，請確認 public 資料夾中的檔名！');
+    }
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
     
-    // 優先尋找名稱，找不到就抓第一頁
-    const ws = workbook.getWorksheet('M15假期申請表') || workbook.worksheets[0]; 
-    if (!ws) throw new Error('無法讀取範本中的 M15假期申請表 工作表！');
+    // 💡 獨立檔案，永遠只寫入第 1 頁，絕不串台
+    const ws = workbook.worksheets[0]; 
     
     const finalLeaveType = m15Form.value.leaveType === '其他 others' 
       ? `其他: ${m15Form.value.otherLeaveType}` 
@@ -504,24 +508,22 @@ const exportM15 = async () => {
       
     const formattedTotal = `${formatExcelDate(m15Form.value.totalDateRange[0])} 至 ${formatExcelDate(m15Form.value.totalDateRange[1])}`;
 
-    // 寫入左半部
+    // 寫入左半部 (正本)
     ws.getCell('E4').value = p.name;       
     ws.getCell('H4').value = p.dept;       
     ws.getCell('E5').value = p.phone;      
     ws.getCell('H5').value = p.position;   
     ws.getCell('G7').value = formattedTotal; 
-    
     const c9Cell = ws.getCell('C9');
     c9Cell.value = `[假期類別]\n${finalLeaveType}`; 
     c9Cell.alignment = { wrapText: true, vertical: 'middle', horizontal: 'left' };
 
-    // 寫入右半部
+    // 寫入右半部 (副本)
     ws.getCell('O4').value = p.name;       
     ws.getCell('R4').value = p.dept;       
     ws.getCell('O5').value = p.phone;      
     ws.getCell('R5').value = p.position;   
     ws.getCell('Q7').value = formattedTotal; 
-    
     const m9Cell = ws.getCell('M9');
     m9Cell.value = `[假期類別]\n${finalLeaveType}`; 
     m9Cell.alignment = { wrapText: true, vertical: 'middle', horizontal: 'left' };
@@ -574,7 +576,7 @@ const exportM15 = async () => {
   }
 };
 
-// ================= 🟢 M15A 匯出 (單獨抓取 M15A_時間調動表.xlsx) =================
+// ================= 🟢 M15A 匯出邏輯 (時間調動) =================
 const exportM15A = async () => {
   if (signaturePad.value) {
     m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
@@ -592,15 +594,19 @@ const exportM15A = async () => {
   }
 
   try {
-    // 💡 獨立抓取 M15A 專屬檔案
-    const response = await fetch('/M15A_時間調動表.xlsx');
-    if (!response.ok) throw new Error('找不到 M15A_時間調動表.xlsx 範本，請確認 public 資料夾中的檔名！');
+    // 💡 精準讀取獨立的 M15A 檔案
+    const response = await fetch('/M15A.xlsx');
+    
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('text/html')) {
+      throw new Error('讀取失敗：系統找不到 M15A.xlsx，請確認 public 資料夾中的檔名！');
+    }
     
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
     
-    let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.worksheets[0];
-    if (!ws) throw new Error('無法讀取範本中的調動表工作表！');
+    // 💡 獨立檔案，永遠只寫入第 1 頁，絕不串台
+    const ws = workbook.worksheets[0];
 
     ws.getCell('C4').value = p.name;      
     ws.getCell('I4').value = p.dept;      
