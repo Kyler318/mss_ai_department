@@ -356,8 +356,7 @@ watch(personalInfo, (newVal) => {
   localStorage.setItem('leaveAppPersonalInfo', JSON.stringify(newVal));
 }, { deep: true });
 
-// ================= 🟢 智能時數與天數計算 =================
-// 計算平日天數 (乘 7.2h)
+// ================= 智能時數與天數計算 =================
 const calculateLeaveHours = (range) => {
   if (!range || range.length !== 2) return 0;
   
@@ -382,7 +381,6 @@ const calculateLeaveHours = (range) => {
   return parseFloat((count * 7.2).toFixed(2));
 };
 
-// 統整所有 records 的總時數
 const m15TotalHours = computed(() => {
   let total = 0;
   m15Form.value.records.forEach((r) => {
@@ -397,12 +395,10 @@ const m15TotalHours = computed(() => {
   return total;
 });
 
-// 換算總天數 (時數 / 7.2)
 const m15TotalDays = computed(() => {
   return parseFloat((m15TotalHours.value / 7.2).toFixed(2));
 });
 
-// 轉換成 Excel 需要的文字格式 "X 小時 Y 分鐘"
 const m15TotalHoursText = computed(() => {
   const hrs = m15TotalHours.value;
   if (hrs === 0) return '0 小時 0 分鐘';
@@ -477,7 +473,7 @@ const formatExcelTimeRange = (s1, s2, s3) => {
   return lines.join('\n');
 };
 
-// ================= 🟢 M15 匯出邏輯 (精準寫入 E8, G8 總計) =================
+// ================= 🟢 M15 匯出邏輯 (修復檔案損壞問題) =================
 const exportM15 = async () => {
   const p = personalInfo.value;
   if (!p.name || !p.position || !p.dept || !p.phone || !m15Form.value.totalDateRange || m15Form.value.totalDateRange.length !== 2) {
@@ -491,8 +487,9 @@ const exportM15 = async () => {
   }
 
   try {
-    const response = await fetch('/M15_Template.xlsx');
-    if (!response.ok) throw new Error('找不到 M15_Template.xlsx 範本，請確認檔案是否有在 public 資料夾中！');
+    // 💡 讀取你最新的範本檔名
+    const response = await fetch('/M15A_假期申請表.xlsx');
+    if (!response.ok) throw new Error('找不到 M15A_假期申請表.xlsx 範本，請確認 public 資料夾的檔名！');
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
@@ -506,46 +503,49 @@ const exportM15 = async () => {
       
     const formattedTotal = `${formatExcelDate(m15Form.value.totalDateRange[0])} 至 ${formatExcelDate(m15Form.value.totalDateRange[1])}`;
 
-    // === 寫入左半部 (正本) ===
+    // 寫入左半部
     ws.getCell('E4').value = p.name;       
     ws.getCell('H4').value = p.dept;       
     ws.getCell('E5').value = p.phone;      
     ws.getCell('H5').value = p.position;   
     ws.getCell('G7').value = formattedTotal; 
-    ws.getCell('C9').value = `[假期類別]\n${finalLeaveType}`; 
+    
+    const c9Cell = ws.getCell('C9');
+    c9Cell.value = `[假期類別]\n${finalLeaveType}`; 
+    c9Cell.alignment = { wrapText: true, vertical: 'middle', horizontal: 'left' };
 
-    // === 寫入右半部 (副本) ===
+    // 寫入右半部
     ws.getCell('O4').value = p.name;       
     ws.getCell('R4').value = p.dept;       
     ws.getCell('O5').value = p.phone;      
     ws.getCell('R5').value = p.position;   
     ws.getCell('Q7').value = formattedTotal; 
-    ws.getCell('M9').value = `[假期類別]\n${finalLeaveType}`; 
+    
+    const m9Cell = ws.getCell('M9');
+    m9Cell.value = `[假期類別]\n${finalLeaveType}`; 
+    m9Cell.alignment = { wrapText: true, vertical: 'middle', horizontal: 'left' };
 
-    // === 🟢 寫入總計天數與總時數 (E8, G8, O8, Q8) ===
+    // 寫入總計天數與總時數
     if (m15TotalHours.value > 0) {
       const h = Math.floor(m15TotalHours.value);
       const m = Math.round((m15TotalHours.value - h) * 60);
       const excelTimeStr = `共 ${h} 小時hrs ${m} 分鐘mins`;
 
-      ws.getCell('E8').value = m15TotalDays.value; // 正本天數
-      ws.getCell('G8').value = excelTimeStr;       // 正本時數
-      
-      ws.getCell('O8').value = m15TotalDays.value; // 副本天數
-      ws.getCell('Q8').value = excelTimeStr;       // 副本時數
+      ws.getCell('E8').value = m15TotalDays.value; 
+      ws.getCell('G8').value = excelTimeStr;       
+      ws.getCell('O8').value = m15TotalDays.value; 
+      ws.getCell('Q8').value = excelTimeStr;       
     }
 
-    // === 動態寫入明細時段 (第 10, 11, 12... 行) ===
+    // 動態寫入明細時段
     m15Form.value.records.forEach((r, idx) => {
       const rowNum = 10 + idx; 
-      
       if (m15Form.value.leaveType === '補鐘/補假 Compansention leave') {
         if (r.manualStart || r.manualEnd) {
           const manualHrs = parseFloat(r.manualHours) || 0;
           ws.getCell(`G${rowNum}`).value = r.manualStart;
           ws.getCell(`H${rowNum}`).value = r.manualEnd;
           ws.getCell(`I${rowNum}`).value = manualHrs > 0 ? `${manualHrs}H` : '';
-
           ws.getCell(`Q${rowNum}`).value = r.manualStart;
           ws.getCell(`R${rowNum}`).value = r.manualEnd;
           ws.getCell(`S${rowNum}`).value = manualHrs > 0 ? `${manualHrs}H` : '';
@@ -553,22 +553,20 @@ const exportM15 = async () => {
       } else {
         if (r.dateRange && r.dateRange.length === 2) {
           const hrs = calculateLeaveHours(r.dateRange);
-          const startStr = formatExcelDate(r.dateRange[0]);
-          const endStr = formatExcelDate(r.dateRange[1]);
-          
-          ws.getCell(`G${rowNum}`).value = startStr;
-          ws.getCell(`H${rowNum}`).value = endStr;
+          ws.getCell(`G${rowNum}`).value = formatExcelDate(r.dateRange[0]);
+          ws.getCell(`H${rowNum}`).value = formatExcelDate(r.dateRange[1]);
           ws.getCell(`I${rowNum}`).value = hrs > 0 ? `${hrs}H` : '';
-
-          ws.getCell(`Q${rowNum}`).value = startStr;
-          ws.getCell(`R${rowNum}`).value = endStr;
+          ws.getCell(`Q${rowNum}`).value = formatExcelDate(r.dateRange[0]);
+          ws.getCell(`R${rowNum}`).value = formatExcelDate(r.dateRange[1]);
           ws.getCell(`S${rowNum}`).value = hrs > 0 ? `${hrs}H` : '';
         }
       }
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), `M15_假期申請表_${p.name}.xlsx`);
+    // 💡 關鍵修復 1：加入標準的 MIME Type，避免瀏覽器下載損壞
+    const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    saveAs(new Blob([buffer], { type: blobType }), `M15_假期申請表_${p.name}.xlsx`);
     ElMessage.success('M15 假期申請表匯出成功！正本與副本皆已同步。');
   } catch (err) { 
     console.error(err);
@@ -576,7 +574,7 @@ const exportM15 = async () => {
   }
 };
 
-// ================= M15A 匯出 =================
+// ================= 🟢 M15A 匯出 (修復檔案損壞問題) =================
 const exportM15A = async () => {
   if (signaturePad.value) {
     m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
@@ -594,8 +592,9 @@ const exportM15A = async () => {
   }
 
   try {
-    const response = await fetch('/M15_Template.xlsx');
-    if (!response.ok) throw new Error('找不到 M15_Template.xlsx 範本，請確認檔案是否有在 public 資料夾中！');
+    // 💡 讀取最新的範本檔名
+    const response = await fetch('/M15A_假期申請表.xlsx');
+    if (!response.ok) throw new Error('找不到 M15A_假期申請表.xlsx 範本，請確認 public 資料夾的檔名！');
     
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
@@ -659,8 +658,9 @@ const exportM15A = async () => {
         extension: 'png',
       });
       
-      ws.addImage(imageId, { tl: { col: 1, row: 21 }, ext: { width: 150, height: 60 } });
-      ws.addImage(imageId, { tl: { col: 11, row: 21 }, ext: { width: 150, height: 60 } });
+      // 💡 關鍵修復 2：加上 editAs: 'absolute'，防止 Excel 重新計算圖片邊界時造成檔案損毀
+      ws.addImage(imageId, { tl: { col: 1, row: 21 }, ext: { width: 150, height: 60 }, editAs: 'absolute' });
+      ws.addImage(imageId, { tl: { col: 11, row: 21 }, ext: { width: 150, height: 60 }, editAs: 'absolute' });
     }
 
     const todayDateStr = formatExcelDate(new Date());
@@ -670,7 +670,9 @@ const exportM15A = async () => {
     ws.getCell('L23').alignment = { vertical: 'middle', horizontal: 'left' };
 
     const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), `M15A_上班時間調動表_${p.name}.xlsx`);
+    // 💡 關鍵修復 1：加入標準的 MIME Type
+    const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    saveAs(new Blob([buffer], { type: blobType }), `M15A_上班時間調動表_${p.name}.xlsx`);
     ElMessage.success('M15A 匯出成功！');
   } catch (err) { 
     console.error(err);
