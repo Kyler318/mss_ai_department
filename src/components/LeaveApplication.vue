@@ -2,6 +2,7 @@
   <div class="leave-app-page">
     <el-tabs v-model="activeTab" type="border-card">
       
+      <!-- ================= 📄 M15 假期申請表 ================= -->
       <el-tab-pane label="📄 M15 假期申請" name="m15">
         <el-form label-width="130px" style="max-width: 950px; margin: 20px auto;">
           
@@ -124,6 +125,7 @@
             </el-form-item>
           </div>
 
+          <!-- 3.0 M15 員工手寫簽署驗證 -->
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
             <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工手寫簽署驗證</h4>
             
@@ -133,6 +135,7 @@
             </div>
             
             <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
+              <!-- 🟢 確保切換到 m15 時才載入畫布，防止尺寸計算錯誤 -->
               <Vue3Signature 
                 v-if="activeTab === 'm15'"
                 ref="signaturePadM15" 
@@ -158,6 +161,7 @@
         </el-form>
       </el-tab-pane>
 
+      <!-- ================= 🔄 M15A 上班時間調動表 ================= -->
       <el-tab-pane label="🔄 M15A 時間調動" name="m15a" lazy>
         <el-form label-width="110px" style="max-width: 950px; margin: 20px auto;">
           
@@ -275,6 +279,7 @@
             </el-row>
           </div>
 
+          <!-- 3.0 M15A 員工手寫簽署驗證 -->
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
             <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工手寫簽署驗證</h4>
             
@@ -284,6 +289,7 @@
             </div>
             
             <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
+              <!-- 🟢 確保切換到 m15a 時才載入畫布，防止尺寸計算錯誤 -->
               <Vue3Signature 
                 v-if="activeTab === 'm15a'"
                 ref="signaturePad" 
@@ -750,8 +756,8 @@ const exportM15A = async () => {
 
       const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
       
-      ws.addImage(imageId, { tl: { col: 1.1, row: 20.8 }, br: { col: 3.8, row: 22.5 }, editAs: 'oneCell' });
-      ws.addImage(imageId, { tl: { col: 11.1, row: 20.8 }, br: { col: 13.8, row: 22.5 }, editAs: 'oneCell' });
+      ws.addImage(imageId, { tl: { col: 1, row: 20 }, ext: { width: 150, height: 60 } }); // B21
+      ws.addImage(imageId, { tl: { col: 11, row: 20 }, ext: { width: 150, height: 60 } }); // L21
     }
 
     const todayDateStr = formatExcelDate(new Date());
