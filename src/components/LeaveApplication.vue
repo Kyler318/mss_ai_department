@@ -594,9 +594,9 @@ const exportM15 = async () => {
       
     const formattedTotal = `${formatExcelDate(m15Form.value.totalDateRange[0])} 至 ${formatExcelDate(m15Form.value.totalDateRange[1])}`;
 
-    ws.getCell('E4').value = p.name;       
+    ws.getCell('F4').value = p.name;       
     ws.getCell('H4').value = p.dept;       
-    ws.getCell('E5').value = p.phone;      
+    ws.getCell('F5').value = p.phone;      
     ws.getCell('H5').value = p.position;   
     ws.getCell('G7').value = formattedTotal; 
     
@@ -604,9 +604,9 @@ const exportM15 = async () => {
     c9Cell.value = `[假期類別]\n${finalLeaveType}`; 
     c9Cell.alignment = { wrapText: true, vertical: 'middle', horizontal: 'left' };
 
-    ws.getCell('O4').value = p.name;       
+    ws.getCell('P4').value = p.name;       
     ws.getCell('R4').value = p.dept;       
-    ws.getCell('O5').value = p.phone;      
+    ws.getCell('P5').value = p.phone;      
     ws.getCell('R5').value = p.position;   
     ws.getCell('Q7').value = formattedTotal; 
     
@@ -662,10 +662,10 @@ const exportM15 = async () => {
     }
 
     const todayDateStr = formatExcelDate(new Date());
-    ws.getCell('B25').value = todayDateStr; 
-    ws.getCell('B25').alignment = { vertical: 'middle', horizontal: 'left' };
-    ws.getCell('L25').value = todayDateStr; 
-    ws.getCell('L25').alignment = { vertical: 'middle', horizontal: 'left' };
+    ws.getCell('B26').value = todayDateStr; 
+    ws.getCell('B26').alignment = { vertical: 'middle', horizontal: 'left' };
+    ws.getCell('L26').value = todayDateStr; 
+    ws.getCell('L26').alignment = { vertical: 'middle', horizontal: 'left' };
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
