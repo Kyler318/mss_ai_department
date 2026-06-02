@@ -123,6 +123,36 @@
               </div>
             </el-form-item>
           </div>
+
+          <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
+            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工手寫簽署驗證</h4>
+            
+            <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (同時自動填寫 B24 / L24)</span>
+              <el-button type="danger" plain size="small" @click="clearSignatureM15">清除重簽</el-button>
+            </div>
+            
+            <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
+              <Vue3Signature 
+                key="m15-sig"
+                ref="signaturePadM15" 
+                :sigOption="state.option" 
+                :w="'100%'" 
+                :h="'200px'" 
+                @end="saveSignatureM15"
+                class="signature-canvas"
+                style="width: 100%; height: 100%;"
+              />
+            </div>
+
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="簽署日期 (B25/L25)">
+                  <el-input :value="getTodayStr()" disabled style="width: 100%;" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
           
           <el-button type="primary" size="large" @click="exportM15" style="width: 100%; font-weight: bold;">📥 匯出 M15 申請表 (Excel)</el-button>
         </el-form>
@@ -255,7 +285,7 @@
             
             <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
               <Vue3Signature 
-                :key="activeTab"
+                key="m15a-sig"
                 ref="signaturePad" 
                 :sigOption="state.option" 
                 :w="'100%'" 
@@ -307,6 +337,7 @@ const m15Form = ref({
   totalDateRange: [], 
   leaveType: '有薪年假 Paid Annual leave', 
   otherLeaveType: '',
+  signatureImageBase64: '', // 新增 M15 簽名資料
   records: [ 
     { dateRange: [], manualStart: '', manualEnd: '', manualHours: '' } 
   ]
@@ -331,11 +362,10 @@ const m15aForm = ref({
   ]
 });
 
-// ================= 🟢 日期選擇限制邏輯 (disabled-date) =================
-// 如果日期不在「整個休假時段 / 調動日期」內，就反灰禁止選擇
+// ================= 日期選擇限制邏輯 (disabled-date) =================
 const disabledM15Date = (time) => {
   if (!m15Form.value.totalDateRange || m15Form.value.totalDateRange.length !== 2) {
-    return false; // 如果上方總時段還沒選，不限制
+    return false; 
   }
   const start = new Date(m15Form.value.totalDateRange[0]).setHours(0, 0, 0, 0);
   const end = new Date(m15Form.value.totalDateRange[1]).setHours(23, 59, 59, 999);
@@ -344,7 +374,7 @@ const disabledM15Date = (time) => {
 
 const disabledM15aDate = (time) => {
   if (!m15aForm.value.totalDateRange || m15aForm.value.totalDateRange.length !== 2) {
-    return false; // 如果上方總時段還沒選，不限制
+    return false; 
   }
   const start = new Date(m15aForm.value.totalDateRange[0]).setHours(0, 0, 0, 0);
   const end = new Date(m15aForm.value.totalDateRange[1]).setHours(23, 59, 59, 999);
@@ -352,7 +382,9 @@ const disabledM15aDate = (time) => {
 };
 
 // ================= 畫布簽名邏輯 =================
-const signaturePad = ref(null);
+const signaturePad = ref(null);      // M15A 的簽名板
+const signaturePadM15 = ref(null);   // M15 的簽名板
+
 const state = reactive({
   option: {
     penColor: "rgb(0, 0, 0)", 
@@ -362,16 +394,29 @@ const state = reactive({
   }
 });
 
+// M15A 儲存與清除
 const saveSignature = () => {
   if (signaturePad.value) {
     m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
   }
 };
-
 const clearSignature = () => {
   if (signaturePad.value) {
     signaturePad.value.clear();
     m15aForm.value.signatureImageBase64 = '';
+  }
+};
+
+// M15 儲存與清除
+const saveSignatureM15 = () => {
+  if (signaturePadM15.value) {
+    m15Form.value.signatureImageBase64 = signaturePadM15.value.save("image/png");
+  }
+};
+const clearSignatureM15 = () => {
+  if (signaturePadM15.value) {
+    signaturePadM15.value.clear();
+    m15Form.value.signatureImageBase64 = '';
   }
 };
 
@@ -508,8 +553,13 @@ const formatExcelTimeRange = (s1, s2, s3) => {
   return lines.join('\n');
 };
 
-// ================= 🟢 M15 匯出邏輯 =================
+// ================= 🟢 M15 匯出邏輯 (加入簽名寫入 B24/L24) =================
 const exportM15 = async () => {
+  // 自動儲存簽名
+  if (signaturePadM15.value) {
+    m15Form.value.signatureImageBase64 = signaturePadM15.value.save("image/png");
+  }
+
   const p = personalInfo.value;
   if (!p.name || !p.position || !p.dept || !p.phone || !m15Form.value.totalDateRange || m15Form.value.totalDateRange.length !== 2) {
     ElMessage.warning('請完整填寫 1.0 的個人資料與總休假時段！');
@@ -518,6 +568,11 @@ const exportM15 = async () => {
   
   if (m15Form.value.leaveType === '其他 others' && !m15Form.value.otherLeaveType.trim()) {
     ElMessage.warning('請註明其他假期類型！');
+    return;
+  }
+
+  if (!m15Form.value.signatureImageBase64) {
+    ElMessage.warning('⚠️ 匯出失敗：請完成手寫簽名！');
     return;
   }
 
@@ -600,10 +655,38 @@ const exportM15 = async () => {
       }
     });
 
+    // ================= 插入 M15 簽名與日期 (B24/L24, B25/L25) =================
+    if (m15Form.value.signatureImageBase64) {
+      const rawBase64 = m15Form.value.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
+      const imageId = workbook.addImage({
+        base64: rawBase64,
+        extension: 'png',
+      });
+      
+      // 正本簽名 (B24區域)
+      ws.addImage(imageId, { 
+        tl: { col: 1.1, row: 22.8 }, 
+        br: { col: 3.8, row: 24.5 }, 
+        editAs: 'oneCell' 
+      });
+      // 副本簽名 (L24區域)
+      ws.addImage(imageId, { 
+        tl: { col: 11.1, row: 22.8 }, 
+        br: { col: 13.8, row: 24.5 }, 
+        editAs: 'oneCell' 
+      });
+    }
+
+    const todayDateStr = formatExcelDate(new Date());
+    ws.getCell('B25').value = todayDateStr; 
+    ws.getCell('B25').alignment = { vertical: 'middle', horizontal: 'left' };
+    ws.getCell('L25').value = todayDateStr; 
+    ws.getCell('L25').alignment = { vertical: 'middle', horizontal: 'left' };
+
     const buffer = await workbook.xlsx.writeBuffer();
     const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     saveAs(new Blob([buffer], { type: blobType }), `M15_假期申請表_${p.name}.xlsx`);
-    ElMessage.success('M15 假期申請表匯出成功！');
+    ElMessage.success('M15 假期申請表匯出成功！正本與副本皆已簽署。');
   } catch (err) { 
     console.error(err);
     ElMessage.error(err.message); 
