@@ -473,7 +473,7 @@ const formatExcelTimeRange = (s1, s2, s3) => {
   return lines.join('\n');
 };
 
-// ================= 🟢 M15 匯出邏輯 (假期申請表) =================
+// ================= 🟢 M15 匯出邏輯 =================
 const exportM15 = async () => {
   const p = personalInfo.value;
   if (!p.name || !p.position || !p.dept || !p.phone || !m15Form.value.totalDateRange || m15Form.value.totalDateRange.length !== 2) {
@@ -487,7 +487,6 @@ const exportM15 = async () => {
   }
 
   try {
-    // 💡 精確讀取 M15A_假期申請表.xlsx
     const response = await fetch('/M15A_假期申請表.xlsx');
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('text/html')) {
@@ -497,7 +496,6 @@ const exportM15 = async () => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
     
-    // 💡 抓取對應的工作表
     const ws = workbook.getWorksheet('M15假期申請表') || workbook.worksheets[0]; 
     if (!ws) throw new Error('無法讀取工作表 M15假期申請表！');
     
@@ -577,7 +575,7 @@ const exportM15 = async () => {
   }
 };
 
-// ================= 🟢 M15A 匯出邏輯 (上班時間調動表) =================
+// ================= 🟢 M15A 匯出邏輯 (修復簽名擋住文字問題) =================
 const exportM15A = async () => {
   if (signaturePad.value) {
     m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
@@ -595,7 +593,6 @@ const exportM15A = async () => {
   }
 
   try {
-    // 💡 精確讀取 M15A上班時間調動表.xlsx
     const response = await fetch('/M15A上班時間調動表.xlsx');
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('text/html')) {
@@ -605,7 +602,6 @@ const exportM15A = async () => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
     
-    // 💡 抓取對應的工作表
     let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.worksheets[0];
     if (!ws) throw new Error('無法讀取工作表 M15A上班時間調動表！');
 
@@ -656,7 +652,6 @@ const exportM15A = async () => {
     });
 
     if (f.signatureImageBase64) {
-      // 去除 Base64 前綴，避免破壞圖片結構
       const rawBase64 = f.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
 
       const imageId = workbook.addImage({
@@ -664,15 +659,15 @@ const exportM15A = async () => {
         extension: 'png',
       });
       
-      // 💡 關鍵修復：使用 tl (Top-Left) 和 br (Bottom-Right) 鎖定儲存格邊界，防止 Excel 破圖報錯
+      // 💡 關鍵修復：將下邊界 (br.row) 從 23.9 縮短至 22.5，避免圖片蓋過第 24 行的「備註 Remark」
       ws.addImage(imageId, { 
-        tl: { col: 1.1, row: 21.1 }, 
-        br: { col: 4.9, row: 23.9 }, 
+        tl: { col: 1.1, row: 20.8 }, 
+        br: { col: 3.8, row: 22.5 }, 
         editAs: 'oneCell' 
       });
       ws.addImage(imageId, { 
-        tl: { col: 11.1, row: 21.1 }, 
-        br: { col: 14.9, row: 23.9 }, 
+        tl: { col: 11.1, row: 20.8 }, 
+        br: { col: 13.8, row: 22.5 }, 
         editAs: 'oneCell' 
       });
     }
