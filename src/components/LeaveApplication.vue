@@ -107,7 +107,8 @@
                 
                 <div style="font-size: 12px; color: #909399; margin-top: 10px; line-height: 1.6;">
                   💡 <b>一般假期：</b>系統會自動扣除週六與週日，並按每日 7.2 小時計算。<br>
-                  💡 <b>補鐘/補假：</b>請手動輸入具體的「幾點到幾點」與純數字的「總時數 (例如 2.5)」。
+                  💡 <b>補鐘/補假：</b>請手動輸入具體的「幾點到幾點」與純數字的「總時數 (例如 2.5)」。<br>
+                  ⚠️ <b>注意：</b>實際休假明細的日期不可超出上方「整個休假時段」的範圍。
                 </div>
 
                 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #dcdfe6; display: flex; justify-content: flex-end; align-items: center; gap: 25px;">
@@ -376,7 +377,7 @@ const disabledM15aDate = (time) => {
 const signaturePad = ref(null);      // M15A 
 const signaturePadM15 = ref(null);   // M15 
 
-// 🟢 恢復成透明背景，完美疊加在 Excel 的線上
+// 透明背景，不破壞 Excel 格線
 const state = reactive({
   option: {
     penColor: "rgb(0, 0, 0)", 
@@ -487,6 +488,7 @@ const calculateHours = (timeStr) => {
   if (!timeStr) return 0;
   const str = timeStr.replace(/\s+/g, '');
   if (!str.includes('-')) return 0;
+  
   const [start, end] = str.split('-');
   const parseTime = (t) => {
     if (!t) return null;
@@ -526,7 +528,7 @@ const formatExcelTimeRange = (s1, s2, s3) => {
 
 // ================= 🟢 M15 匯出邏輯 =================
 const exportM15 = async () => {
-  // 🟢 直接在此時獲取最新簽名，確保簽名不會因為 Vue 渲染而遺失
+  // 確保在匯出瞬間獲取簽名
   if (signaturePadM15.value) {
     m15Form.value.signatureImageBase64 = signaturePadM15.value.save("image/png");
   }
@@ -536,23 +538,15 @@ const exportM15 = async () => {
     ElMessage.warning('請完整填寫 1.0 的個人資料與總休假時段！');
     return;
   }
-  
-  if (m15Form.value.leaveType === '其他 others' && !m15Form.value.otherLeaveType.trim()) {
-    ElMessage.warning('請註明其他假期類型！');
-    return;
-  }
 
-  if (!m15Form.value.signatureImageBase64 || m15Form.value.signatureImageBase64 === state.option.backgroundColor) {
+  if (!m15Form.value.signatureImageBase64) {
     ElMessage.warning('⚠️ 匯出失敗：請完成手寫簽名！');
     return;
   }
 
   try {
     const response = await fetch('/M15A_假期申請表.xlsx');
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('text/html')) {
-      throw new Error('讀取失敗：找不到 M15A_假期申請表.xlsx，請確認檔名！');
-    }
+    if (!response.ok) throw new Error('讀取失敗：找不到 M15A_假期申請表.xlsx，請確認檔名！');
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
@@ -566,30 +560,26 @@ const exportM15 = async () => {
       
     const formattedTotal = `${formatExcelDate(m15Form.value.totalDateRange[0])} 至 ${formatExcelDate(m15Form.value.totalDateRange[1])}`;
 
+    // 寫入文字資料，不觸碰 alignment 以防破壞結構
     ws.getCell('E4').value = p.name;       
     ws.getCell('H4').value = p.dept;       
     ws.getCell('E5').value = p.phone;      
     ws.getCell('H5').value = p.position;   
     ws.getCell('G7').value = formattedTotal; 
-    
-    const c9Cell = ws.getCell('C9');
-    c9Cell.value = `[假期類別]\n${finalLeaveType}`; 
-    c9Cell.alignment = { wrapText: true, vertical: 'middle', horizontal: 'left' };
+    ws.getCell('C9').value = `[假期類別]\n${finalLeaveType}`; 
 
     ws.getCell('O4').value = p.name;       
     ws.getCell('R4').value = p.dept;       
     ws.getCell('O5').value = p.phone;      
     ws.getCell('R5').value = p.position;   
     ws.getCell('Q7').value = formattedTotal; 
-    
-    const m9Cell = ws.getCell('M9');
-    m9Cell.value = `[假期類別]\n${finalLeaveType}`; 
-    m9Cell.alignment = { wrapText: true, vertical: 'middle', horizontal: 'left' };
+    ws.getCell('M9').value = `[假期類別]\n${finalLeaveType}`; 
 
     if (m15TotalHours.value > 0) {
       const h = Math.floor(m15TotalHours.value);
       const m = Math.round((m15TotalHours.value - h) * 60);
       const excelTimeStr = `共 ${h} 小時hrs ${m} 分鐘mins`;
+
       ws.getCell('E8').value = m15TotalDays.value; 
       ws.getCell('G8').value = excelTimeStr;       
       ws.getCell('O8').value = m15TotalDays.value; 
@@ -621,26 +611,29 @@ const exportM15 = async () => {
       }
     });
 
-    // 🟢 完美的 PNG 透明寫入方式：指定大小、指定絕對定位防破圖
+    // 🟢 插入簽名：使用 tl 和 br 來精準放大並鎖定在 B24 ~ C25 之間
     if (m15Form.value.signatureImageBase64) {
-      // 確保正確取得 Base64 編碼本體
-      const rawBase64 = m15Form.value.signatureImageBase64.includes(',') 
-        ? m15Form.value.signatureImageBase64.split(',')[1] 
-        : m15Form.value.signatureImageBase64;
-
+      const rawBase64 = m15Form.value.signatureImageBase64.split(',')[1];
       const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
       
-      // 使用 ext 並且加入 editAs: 'absolute'，既能顯示 PNG 又不會讓 Excel 報錯
-      ws.addImage(imageId, { tl: { col: 1.2, row: 23.2 }, ext: { width: 140, height: 50 }, editAs: 'absolute' });
-      ws.addImage(imageId, { tl: { col: 11.2, row: 23.2 }, ext: { width: 140, height: 50 }, editAs: 'absolute' });
+      // 正本 B24 到 C25
+      ws.addImage(imageId, { 
+        tl: { col: 1, row: 23 }, 
+        br: { col: 3, row: 25 }, 
+        editAs: 'oneCell' 
+      });
+      // 副本 L24 到 M25
+      ws.addImage(imageId, { 
+        tl: { col: 11, row: 23 }, 
+        br: { col: 13, row: 25 }, 
+        editAs: 'oneCell' 
+      });
     }
 
-    // 🟢 日期完美填入 B26 / L26
+    // 🟢 日期填入 B26 / L26
     const todayDateStr = formatExcelDate(new Date());
     ws.getCell('B26').value = todayDateStr; 
-    ws.getCell('B26').alignment = { vertical: 'middle', horizontal: 'left' };
     ws.getCell('L26').value = todayDateStr; 
-    ws.getCell('L26').alignment = { vertical: 'middle', horizontal: 'left' };
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -652,9 +645,9 @@ const exportM15 = async () => {
   }
 };
 
-// ================= 🟢 M15A 匯出邏輯 (上班時間調動表) =================
+// ================= 🟢 M15A 匯出邏輯 =================
 const exportM15A = async () => {
-  // 🟢 直接在此時獲取最新簽名
+  // 確保在匯出瞬間獲取簽名
   if (signaturePad.value) {
     m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
   }
@@ -667,17 +660,14 @@ const exportM15A = async () => {
     return;
   }
 
-  if (!f.signatureImageBase64 || f.signatureImageBase64 === state.option.backgroundColor) {
+  if (!f.signatureImageBase64) {
     ElMessage.warning('⚠️ 匯出失敗：請完成手寫簽名！');
     return;
   }
 
   try {
     const response = await fetch('/M15A上班時間調動表.xlsx');
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('text/html')) {
-      throw new Error('讀取失敗：找不到 M15A上班時間調動表.xlsx，請確認檔名！');
-    }
+    if (!response.ok) throw new Error('讀取失敗：找不到 M15A上班時間調動表.xlsx，請確認檔名！');
     
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
@@ -685,6 +675,7 @@ const exportM15A = async () => {
     let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.worksheets[0];
     if (!ws) throw new Error('無法讀取工作表 M15A上班時間調動表！');
 
+    // 寫入文字資料，不觸碰 alignment 以防破壞結構
     ws.getCell('C4').value = p.name;      
     ws.getCell('I4').value = p.dept;      
     ws.getCell('C5').value = p.phone;     
@@ -708,47 +699,44 @@ const exportM15A = async () => {
     f.records.forEach((r, i) => {
       const map = cellMap[i];
       if (r.origDate) {
-        const formattedOrigDate = formatExcelDate(r.origDate);
-        ws.getCell(map.oD).value = formattedOrigDate;
-        ws.getCell(map.rOD).value = formattedOrigDate; 
-        
+        ws.getCell(map.oD).value = formatExcelDate(r.origDate);
+        ws.getCell(map.rOD).value = formatExcelDate(r.origDate); 
         const timeRangeStr = formatExcelTimeRange(r.origS1, r.origS2, r.origS3);
         ws.getCell(map.oT).value = timeRangeStr;
-        ws.getCell(map.oT).alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
         ws.getCell(map.rOT).value = timeRangeStr;      
-        ws.getCell(map.rOT).alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
       }
       if (r.adjDate) {
-        const formattedAdjDate = formatExcelDate(r.adjDate);
-        ws.getCell(map.aD).value = formattedAdjDate;
-        ws.getCell(map.rAD).value = formattedAdjDate; 
-        
+        ws.getCell(map.aD).value = formatExcelDate(r.adjDate);
+        ws.getCell(map.rAD).value = formatExcelDate(r.adjDate); 
         const timeRangeStr = formatExcelTimeRange(r.adjS1, r.adjS2, r.adjS3);
         ws.getCell(map.aT).value = timeRangeStr;
-        ws.getCell(map.aT).alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
         ws.getCell(map.rAT).value = timeRangeStr;     
-        ws.getCell(map.rAT).alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
       }
     });
 
-    // 🟢 完美的 PNG 透明寫入方式：指定大小、指定絕對定位防破圖
+    // 🟢 插入簽名：使用 tl 和 br 來精準放大並鎖定在 B21 ~ C22 之間
     if (f.signatureImageBase64) {
-      const rawBase64 = f.signatureImageBase64.includes(',') 
-        ? f.signatureImageBase64.split(',')[1] 
-        : f.signatureImageBase64;
-
+      const rawBase64 = f.signatureImageBase64.split(',')[1];
       const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
       
-      // 使用 ext 並且加入 editAs: 'absolute'，放置在 B22 (row index 21) 附近
-      ws.addImage(imageId, { tl: { col: 1.1, row: 20.2 }, ext: { width: 140, height: 50 }, editAs: 'absolute' });
-      ws.addImage(imageId, { tl: { col: 11.1, row: 20.2 }, ext: { width: 140, height: 50 }, editAs: 'absolute' });
+      // 正本 B21 到 C22
+      ws.addImage(imageId, { 
+        tl: { col: 1, row: 20 }, 
+        br: { col: 3, row: 22 }, 
+        editAs: 'oneCell' 
+      });
+      // 副本 L21 到 M22
+      ws.addImage(imageId, { 
+        tl: { col: 11, row: 20 }, 
+        br: { col: 13, row: 22 }, 
+        editAs: 'oneCell' 
+      });
     }
 
+    // 🟢 日期填寫在 B23 / L23
     const todayDateStr = formatExcelDate(new Date());
     ws.getCell('B23').value = todayDateStr; 
-    ws.getCell('B23').alignment = { vertical: 'middle', horizontal: 'left' };
     ws.getCell('L23').value = todayDateStr; 
-    ws.getCell('L23').alignment = { vertical: 'middle', horizontal: 'left' };
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
