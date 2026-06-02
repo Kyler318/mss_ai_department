@@ -128,7 +128,7 @@
             <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工手寫簽署驗證</h4>
             
             <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (簽名將顯示於表單底部，日期填入 B26 / L26)</span>
+              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (簽名顯示於 B24，日期填入 B27)</span>
               <el-button type="danger" plain size="small" @click="clearSignatureM15">清除重簽</el-button>
             </div>
             
@@ -147,7 +147,7 @@
 
             <el-row :gutter="20">
               <el-col :span="12">
-                <el-form-item label="簽署日期 (B26/L26)">
+                <el-form-item label="簽署日期 (B27/L27)">
                   <el-input :value="getTodayStr()" disabled style="width: 100%;" />
                 </el-form-item>
               </el-col>
@@ -279,7 +279,7 @@
             <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工手寫簽署驗證</h4>
             
             <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (簽名顯示於 B22，日期填入 B23 / L23)</span>
+              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (簽名顯示於 B22，日期填入 B24 / L24)</span>
               <el-button type="danger" plain size="small" @click="clearSignature">清除重簽</el-button>
             </div>
             
@@ -298,7 +298,7 @@
 
             <el-row :gutter="20">
               <el-col :span="12">
-                <el-form-item label="簽署日期 (B23/L23)">
+                <el-form-item label="簽署日期 (B24/L24)">
                   <el-input :value="getTodayStr()" disabled style="width: 100%;" />
                 </el-form-item>
               </el-col>
@@ -381,7 +381,7 @@ const disabledM15aDate = (time) => {
 const signaturePad = ref(null);      // M15A 
 const signaturePadM15 = ref(null);   // M15 
 
-// 透明背景，不破壞 Excel 格線
+// 透明背景
 const state = reactive({
   option: {
     penColor: "rgb(0, 0, 0)", 
@@ -540,8 +540,8 @@ const formatExcelTimeRange = (s1, s2, s3) => {
   return lines.join('\n');
 };
 
-// ================= 🟢 [核心防護] 安全寫入助手 =================
-// 專門對付合併儲存格報錯的防護盾：絕不修改 alignment，遇到合併格自動找主格！
+// ================= 🟢 [終極防禦] 安全寫入助手 =================
+// 確保不破壞合併儲存格結構
 const safeSetCell = (ws, cellRef, value) => {
   try {
     let cell = ws.getCell(cellRef);
@@ -554,7 +554,7 @@ const safeSetCell = (ws, cellRef, value) => {
   }
 };
 
-// ================= 🟢 M15 匯出邏輯 =================
+// ================= 🟢 M15 匯出邏輯 (假期申請表) =================
 const exportM15 = async () => {
   if (signaturePadM15.value) {
     m15Form.value.signatureImageBase64 = signaturePadM15.value.save("image/png");
@@ -587,7 +587,7 @@ const exportM15 = async () => {
       
     const formattedTotal = `${formatExcelDate(m15Form.value.totalDateRange[0])} 至 ${formatExcelDate(m15Form.value.totalDateRange[1])}`;
 
-    // 💡 100% 安全寫入，不再觸發修復
+    // 安全寫入
     safeSetCell(ws, 'E4', p.name);       
     safeSetCell(ws, 'H4', p.dept);       
     safeSetCell(ws, 'E5', p.phone);      
@@ -638,18 +638,18 @@ const exportM15 = async () => {
       }
     });
 
-    // 🟢 插入簽名：使用 ext 絕對尺寸，放置於 B24 (Excel 行索引 23)
+    // 🟢 M15 簽名插入：B24 附近
     if (m15Form.value.signatureImageBase64) {
       const rawBase64 = m15Form.value.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
       const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
-      ws.addImage(imageId, { tl: { col: 1, row: 23 }, ext: { width: 140, height: 45 } }); // B24
+      ws.addImage(imageId, { tl: { col: 1, row: 23 }, ext: { width: 140, height: 45 } }); // Excel中的B24
       ws.addImage(imageId, { tl: { col: 11, row: 23 }, ext: { width: 140, height: 45 } }); // L24
     }
 
-    // 🟢 日期填入 B26 / L26
+    // 🟢 修正：M15 表格的日期格子是 B27 / L27
     const todayDateStr = formatExcelDate(new Date());
-    safeSetCell(ws, 'B26', todayDateStr); 
-    safeSetCell(ws, 'L26', todayDateStr); 
+    safeSetCell(ws, 'B27', todayDateStr); 
+    safeSetCell(ws, 'L27', todayDateStr); 
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -690,7 +690,7 @@ const exportM15A = async () => {
     let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.worksheets[0];
     if (!ws) throw new Error('無法讀取工作表 M15A上班時間調動表！');
 
-    // 💡 100% 安全寫入，絕不觸發修復
+    // 安全寫入
     safeSetCell(ws, 'C4', p.name);      
     safeSetCell(ws, 'I4', p.dept);      
     safeSetCell(ws, 'C5', p.phone);     
@@ -729,20 +729,20 @@ const exportM15A = async () => {
       }
     });
 
-    // 🟢 M15A 簽名精確插入：B22 (使用絕對整數座標，防止 Excel 報錯)
+    // 🟢 M15A 簽名精確插入：B22 - C22
     if (f.signatureImageBase64) {
       const rawBase64 = f.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
       const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
       
-      // row index 21 是 Excel 中的第 22 行 (B22)
-      ws.addImage(imageId, { tl: { col: 1, row: 21 }, ext: { width: 140, height: 45 } });
-      ws.addImage(imageId, { tl: { col: 11, row: 21 }, ext: { width: 140, height: 45 } });
+      // row index 21 就是 Excel 裡面的 22 行
+      ws.addImage(imageId, { tl: { col: 1, row: 21 }, ext: { width: 140, height: 45 } }); // B22
+      ws.addImage(imageId, { tl: { col: 11, row: 21 }, ext: { width: 140, height: 45 } }); // L22
     }
 
-    // 🟢 日期填入 B23 / L23
+    // 🟢 修正：M15A 表格的日期格子是 B24 / L24
     const todayDateStr = formatExcelDate(new Date());
-    safeSetCell(ws, 'B23', todayDateStr); 
-    safeSetCell(ws, 'L23', todayDateStr); 
+    safeSetCell(ws, 'B24', todayDateStr); 
+    safeSetCell(ws, 'L24', todayDateStr); 
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
