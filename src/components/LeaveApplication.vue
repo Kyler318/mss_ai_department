@@ -693,12 +693,12 @@ const exportM15A = async () => {
     // 安全寫入
     safeSetCell(ws, 'C4', p.name);      
     safeSetCell(ws, 'I4', p.dept);      
-    safeSetCell(ws, 'C5', p.phone);     
+    safeSetCell(ws, 'E5', p.phone);     
     safeSetCell(ws, 'I5', p.position);  
     safeSetCell(ws, 'E7', formatSummaryDateRange(f.totalDateRange)); 
     safeSetCell(ws, 'C8', f.reason);    
 
-    safeSetCell(ws, 'M4', p.name);      
+    safeSetCell(ws, '', p.name);      
     safeSetCell(ws, 'S4', p.dept);      
     safeSetCell(ws, 'M5', p.phone);     
     safeSetCell(ws, 'S5', p.position);  
@@ -741,8 +741,8 @@ const exportM15A = async () => {
 
     // 🟢 修正：M15A 表格的日期格子是 B24 / L24
     const todayDateStr = formatExcelDate(new Date());
-    safeSetCell(ws, 'B24', todayDateStr); 
-    safeSetCell(ws, 'L24', todayDateStr); 
+    safeSetCell(ws, 'B23', todayDateStr); 
+    safeSetCell(ws, 'L23', todayDateStr); 
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
