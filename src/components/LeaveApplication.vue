@@ -134,7 +134,6 @@
             
             <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
               <Vue3Signature 
-                v-if="activeTab === 'm15'"
                 ref="signaturePadM15" 
                 :sigOption="state.option" 
                 :w="'100%'" 
@@ -285,7 +284,6 @@
             
             <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
               <Vue3Signature 
-                v-if="activeTab === 'm15a'"
                 ref="signaturePad" 
                 :sigOption="state.option" 
                 :w="'100%'" 
@@ -540,22 +538,22 @@ const formatExcelTimeRange = (s1, s2, s3) => {
   return lines.join('\n');
 };
 
-// ================= 🟢 [防修復] 合併儲存格安全寫入助手 =================
+// ================= 🟢 [核心修復] 安全寫入儲存格 =================
+// 針對合併儲存格設計的防呆寫入，完全避免破壞 Excel 結構！
 const safeSetCell = (ws, cellRef, value, wrap = false) => {
   try {
     let cell = ws.getCell(cellRef);
-    // 💡 若該格子是合併儲存格，強制將值寫入「Master 主格」，徹底避免檔案損壞！
     if (cell.isMerged && cell.master) {
-      cell = cell.master;
+      cell = cell.master; // 遇到合併儲存格，強制寫入主格
     }
     cell.value = value;
     
-    // 只增加 wrapText，不覆寫原本 Excel 裡漂亮的置中對齊
+    // 絕不覆蓋原本的對齊屬性，只附加換行
     if (wrap) {
       cell.alignment = { ...(cell.alignment || {}), wrapText: true };
     }
   } catch (e) {
-    console.warn('Set cell error', e);
+    console.warn(`Set cell error at ${cellRef}:`, e);
   }
 };
 
@@ -592,7 +590,7 @@ const exportM15 = async () => {
       
     const formattedTotal = `${formatExcelDate(m15Form.value.totalDateRange[0])} 至 ${formatExcelDate(m15Form.value.totalDateRange[1])}`;
 
-    // 使用安全寫入助手
+    // 使用安全寫入
     safeSetCell(ws, 'E4', p.name);       
     safeSetCell(ws, 'H4', p.dept);       
     safeSetCell(ws, 'E5', p.phone);      
@@ -643,15 +641,22 @@ const exportM15 = async () => {
       }
     });
 
-    // 🟢 M15 簽名插入 (B24 附近)
     if (m15Form.value.signatureImageBase64) {
       const rawBase64 = m15Form.value.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
       const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
-      ws.addImage(imageId, { tl: { col: 1, row: 23 }, ext: { width: 140, height: 45 } }); // B24
-      ws.addImage(imageId, { tl: { col: 11, row: 23 }, ext: { width: 140, height: 45 } }); // L24
+      
+      ws.addImage(imageId, { 
+        tl: { col: 1, row: 23 }, 
+        br: { col: 3, row: 25 }, 
+        editAs: 'oneCell' 
+      });
+      ws.addImage(imageId, { 
+        tl: { col: 11, row: 23 }, 
+        br: { col: 13, row: 25 }, 
+        editAs: 'oneCell' 
+      });
     }
 
-    // 日期填入 B26 / L26
     const todayDateStr = formatExcelDate(new Date());
     safeSetCell(ws, 'B26', todayDateStr); 
     safeSetCell(ws, 'L26', todayDateStr); 
@@ -666,7 +671,7 @@ const exportM15 = async () => {
   }
 };
 
-// ================= 🟢 M15A 匯出邏輯 (上班時間調動表) =================
+// ================= 🟢 M15A 匯出邏輯 =================
 const exportM15A = async () => {
   if (signaturePad.value) {
     m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
@@ -695,7 +700,7 @@ const exportM15A = async () => {
     let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.worksheets[0];
     if (!ws) throw new Error('無法讀取工作表 M15A上班時間調動表！');
 
-    // 💡 100% 安全寫入，不再觸發 Excel 「單元格信息需要修復」！
+    // 💡 100% 安全寫入 M15A 的每一個格子！
     safeSetCell(ws, 'C4', p.name);      
     safeSetCell(ws, 'I4', p.dept);      
     safeSetCell(ws, 'C5', p.phone);     
@@ -734,14 +739,23 @@ const exportM15A = async () => {
       }
     });
 
-    // 🟢 M15A 簽名精確插入：B22 - C22 (使用絕對整數座標，防止 Excel 報錯)
+    // 🟢 完美放置簽名：B22 - C22 (ExcelJS row index: 21 到 22)
     if (f.signatureImageBase64) {
       const rawBase64 = f.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
       const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
       
-      // row index 21 是 Excel 中的第 22 行
-      ws.addImage(imageId, { tl: { col: 1, row: 21 }, ext: { width: 140, height: 45 } }); // B22
-      ws.addImage(imageId, { tl: { col: 11, row: 21 }, ext: { width: 140, height: 45 } }); // L22
+      // 正本 B22 到 C22
+      ws.addImage(imageId, { 
+        tl: { col: 1, row: 21 }, 
+        br: { col: 3, row: 22 }, 
+        editAs: 'oneCell' 
+      });
+      // 副本 L22 到 M22
+      ws.addImage(imageId, { 
+        tl: { col: 11, row: 21 }, 
+        br: { col: 13, row: 22 }, 
+        editAs: 'oneCell' 
+      });
     }
 
     const todayDateStr = formatExcelDate(new Date());
