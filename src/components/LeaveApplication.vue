@@ -89,6 +89,7 @@
                       start-placeholder="開始日期"
                       end-placeholder="結束日期"
                       style="width: 280px;"
+                      :disabled-date="disabledM15Date"
                     />
                     <span v-if="calculateLeaveHours(record.dateRange) > 0" style="color: #67C23A; font-weight: bold; margin-left: 10px; min-width: 100px;">
                       ⏱️ {{ calculateLeaveHours(record.dateRange) }} 小時
@@ -106,7 +107,8 @@
                 
                 <div style="font-size: 12px; color: #909399; margin-top: 10px; line-height: 1.6;">
                   💡 <b>一般假期：</b>系統會自動扣除週六與週日，並按每日 7.2 小時計算。<br>
-                  💡 <b>補鐘/補假：</b>請手動輸入具體的「幾點到幾點」與純數字的「總時數 (例如 2.5)」。
+                  💡 <b>補鐘/補假：</b>請手動輸入具體的「幾點到幾點」與純數字的「總時數 (例如 2.5)」。<br>
+                  ⚠️ <b>注意：</b>實際休假明細的日期不可超出上方「整個休假時段」的範圍。
                 </div>
 
                 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #dcdfe6; display: flex; justify-content: flex-end; align-items: center; gap: 25px;">
@@ -176,6 +178,7 @@
             <el-row :gutter="30">
               <el-col :span="12" style="border-right: 1px dashed #dcdfe6;">
                 <div style="font-weight: bold; margin-bottom: 10px;">🕒 原定上班時間</div>
+                
                 <el-form-item label="日期">
                   <el-date-picker 
                     v-model="record.origDate" 
@@ -183,8 +186,10 @@
                     style="width: 100%;" 
                     placeholder="選擇日期" 
                     @change="syncAdjDate(record)"
+                    :disabled-date="disabledM15aDate"
                   />
                 </el-form-item>
+                
                 <el-form-item label="時段一">
                   <div style="display: flex; align-items: center; width: 100%;">
                     <el-input v-model="record.origS1" placeholder="例如：09:00-13:30" />
@@ -207,7 +212,17 @@
               
               <el-col :span="12">
                 <div style="font-weight: bold; margin-bottom: 10px;">🔄 調動後上班時間</div>
-                <el-form-item label="日期"><el-date-picker v-model="record.adjDate" type="date" style="width: 100%;" placeholder="選擇日期" /></el-form-item>
+                
+                <el-form-item label="日期">
+                  <el-date-picker 
+                    v-model="record.adjDate" 
+                    type="date" 
+                    style="width: 100%;" 
+                    placeholder="選擇日期" 
+                    :disabled-date="disabledM15aDate"
+                  />
+                </el-form-item>
+                
                 <el-form-item label="時段一">
                   <div style="display: flex; align-items: center; width: 100%;">
                     <el-input v-model="record.adjS1" placeholder="例如：09:00-13:30" />
@@ -315,6 +330,26 @@ const m15aForm = ref({
     { origDate: '', origS1: '', origS2: '', origS3: '', adjDate: '', adjS1: '', adjS2: '', adjS3: '' }  
   ]
 });
+
+// ================= 🟢 日期選擇限制邏輯 (disabled-date) =================
+// 如果日期不在「整個休假時段 / 調動日期」內，就反灰禁止選擇
+const disabledM15Date = (time) => {
+  if (!m15Form.value.totalDateRange || m15Form.value.totalDateRange.length !== 2) {
+    return false; // 如果上方總時段還沒選，不限制
+  }
+  const start = new Date(m15Form.value.totalDateRange[0]).setHours(0, 0, 0, 0);
+  const end = new Date(m15Form.value.totalDateRange[1]).setHours(23, 59, 59, 999);
+  return time.getTime() < start || time.getTime() > end;
+};
+
+const disabledM15aDate = (time) => {
+  if (!m15aForm.value.totalDateRange || m15aForm.value.totalDateRange.length !== 2) {
+    return false; // 如果上方總時段還沒選，不限制
+  }
+  const start = new Date(m15aForm.value.totalDateRange[0]).setHours(0, 0, 0, 0);
+  const end = new Date(m15aForm.value.totalDateRange[1]).setHours(23, 59, 59, 999);
+  return time.getTime() < start || time.getTime() > end;
+};
 
 // ================= 畫布簽名邏輯 =================
 const signaturePad = ref(null);
@@ -575,7 +610,7 @@ const exportM15 = async () => {
   }
 };
 
-// ================= 🟢 M15A 匯出邏輯 (修復簽名擋住文字問題) =================
+// ================= 🟢 M15A 匯出邏輯 =================
 const exportM15A = async () => {
   if (signaturePad.value) {
     m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
@@ -659,7 +694,6 @@ const exportM15A = async () => {
         extension: 'png',
       });
       
-      // 💡 關鍵修復：將下邊界 (br.row) 從 23.9 縮短至 22.5，避免圖片蓋過第 24 行的「備註 Remark」
       ws.addImage(imageId, { 
         tl: { col: 1.1, row: 20.8 }, 
         br: { col: 3.8, row: 22.5 }, 
