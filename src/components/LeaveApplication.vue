@@ -6,7 +6,7 @@
         <el-form label-width="130px" style="max-width: 950px; margin: 20px auto;">
           
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
-            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #409EFF; padding-left: 10px;">1.0 個人資料與總時段 (必填)</h4>
+            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #409EFF; padding-left: 10px;">個人資料與總時段</h4>
             <el-row :gutter="20">
               <el-col :span="8">
                 <el-form-item label="姓名" required><el-input v-model="personalInfo.name" placeholder="請輸入姓名" /></el-form-item>
@@ -29,7 +29,7 @@
                 <el-form-item label="職位" required><el-input v-model="personalInfo.position" placeholder="例如：教師" /></el-form-item>
               </el-col>
               <el-col :span="16">
-                <el-form-item label="整個休假時段 (G7)" required>
+                <el-form-item label="整個休假時段" required>
                   <el-date-picker
                     v-model="m15Form.totalDateRange"
                     type="daterange"
@@ -44,7 +44,7 @@
           </div>
 
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
-            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #E6A23C; padding-left: 10px;">2.0 假期申請明細</h4>
+            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #E6A23C; padding-left: 10px;">假期申請明細</h4>
             
             <el-form-item label="休假類別" required>
               <div style="width: 100%;">
@@ -113,10 +113,10 @@
 
                 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #dcdfe6; display: flex; justify-content: flex-end; align-items: center; gap: 25px;">
                   <span style="font-size: 15px; color: #606266;">
-                    📅 總計休假天數 (E8)：<strong style="color: #409EFF; font-size: 18px;">{{ m15TotalDays }}</strong> 天
+                    📅 總計休假天數：<strong style="color: #409EFF; font-size: 18px;">{{ m15TotalDays }}</strong> 天
                   </span>
                   <span style="font-size: 15px; color: #606266;">
-                    ⏱️ 總計時數 (G8)：<strong style="color: #67C23A; font-size: 18px;">{{ m15TotalHoursText }}</strong>
+                    ⏱️ 總計時數：<strong style="color: #67C23A; font-size: 18px;">{{ m15TotalHoursText }}</strong>
                   </span>
                 </div>
 
@@ -147,7 +147,7 @@
 
             <el-row :gutter="20">
               <el-col :span="12">
-                <el-form-item label="簽署日期 (B26/L26)">
+                <el-form-item label="簽署日期">
                   <el-input :value="getTodayStr()" disabled style="width: 100%;" />
                 </el-form-item>
               </el-col>
@@ -165,10 +165,10 @@
             <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #409EFF; padding-left: 10px;">1.0 個人與調動資料 (必填)</h4>
             <el-row :gutter="20">
               <el-col :span="8">
-                <el-form-item label="姓名 (C4)" required><el-input v-model="personalInfo.name" placeholder="請輸入姓名" /></el-form-item>
+                <el-form-item label="姓名" required><el-input v-model="personalInfo.name" placeholder="請輸入姓名" /></el-form-item>
               </el-col>
               <el-col :span="8">
-                <el-form-item label="部門 (I4)" required>
+                <el-form-item label="部門" required>
                   <el-select v-model="personalInfo.dept" placeholder="請選擇部門" style="width: 100%;">
                     <el-option label="資訊科技/AI輔助部" value="資訊科技/AI輔助部" />
                     <el-option label="行政事務部" value="行政事務部" />
@@ -177,16 +177,16 @@
                 </el-form-item>
               </el-col>
               <el-col :span="8">
-                <el-form-item label="電話 (C5)" required><el-input v-model="personalInfo.phone" placeholder="填寫聯絡電話" /></el-form-item>
+                <el-form-item label="電話" required><el-input v-model="personalInfo.phone" placeholder="填寫聯絡電話" /></el-form-item>
               </el-col>
             </el-row>
             
             <el-row :gutter="20">
               <el-col :span="8">
-                <el-form-item label="職位 (I5)" required><el-input v-model="personalInfo.position" placeholder="例如：教師" /></el-form-item>
+                <el-form-item label="職位" required><el-input v-model="personalInfo.position" placeholder="例如：教師" /></el-form-item>
               </el-col>
               <el-col :span="16">
-                <el-form-item label="調動日期 (E7)" required>
+                <el-form-item label="調動日期" required>
                   <el-date-picker
                     v-model="m15aForm.totalDateRange"
                     type="daterange"
@@ -198,7 +198,7 @@
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-form-item label="調動原因 (C8)" required>
+            <el-form-item label="調動原因" required>
               <el-input v-model="m15aForm.reason" placeholder="請輸入原因..." />
             </el-form-item>
           </div>
