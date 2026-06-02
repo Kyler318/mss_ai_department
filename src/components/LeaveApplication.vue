@@ -721,13 +721,13 @@ const exportM15A = async () => {
       
       // 正本 B21 到 C22
       ws.addImage(imageId, { 
-        tl: { col: 1, row: 20 }, 
+        tl: { col: 1, row: 21 }, 
         br: { col: 3, row: 22 }, 
         editAs: 'oneCell' 
       });
       // 副本 L21 到 M22
       ws.addImage(imageId, { 
-        tl: { col: 11, row: 20 }, 
+        tl: { col: 11, row: 21 }, 
         br: { col: 13, row: 22 }, 
         editAs: 'oneCell' 
       });
