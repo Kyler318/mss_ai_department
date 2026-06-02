@@ -107,7 +107,8 @@
                 
                 <div style="font-size: 12px; color: #909399; margin-top: 10px; line-height: 1.6;">
                   💡 <b>一般假期：</b>系統會自動扣除週六與週日，並按每日 7.2 小時計算。<br>
-                  💡 <b>補鐘/補假：</b>請手動輸入具體的「幾點到幾點」與純數字的「總時數 (例如 2.5)」。
+                  💡 <b>補鐘/補假：</b>請手動輸入具體的「幾點到幾點」與純數字的「總時數 (例如 2.5)」。<br>
+                  ⚠️ <b>注意：</b>實際休假明細的日期不可超出上方「整個休假時段」的範圍。
                 </div>
 
                 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #dcdfe6; display: flex; justify-content: flex-end; align-items: center; gap: 25px;">
@@ -131,7 +132,7 @@
               <el-button type="danger" plain size="small" @click="clearSignatureM15">清除重簽</el-button>
             </div>
             
-            <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #ffffff; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
+            <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
               <Vue3Signature 
                 v-if="activeTab === 'm15'"
                 ref="signaturePadM15" 
@@ -140,13 +141,13 @@
                 :h="'200px'" 
                 @end="saveSignatureM15"
                 class="signature-canvas"
-                style="width: 100%; height: 100%; background: #ffffff;"
+                style="width: 100%; height: 100%;"
               />
             </div>
 
             <el-row :gutter="20">
               <el-col :span="12">
-                <el-form-item label="簽署日期 (B25/L25)">
+                <el-form-item label="簽署日期 (B26/L26)">
                   <el-input :value="getTodayStr()" disabled style="width: 100%;" />
                 </el-form-item>
               </el-col>
@@ -282,7 +283,7 @@
               <el-button type="danger" plain size="small" @click="clearSignature">清除重簽</el-button>
             </div>
             
-            <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #ffffff; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
+            <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
               <Vue3Signature 
                 v-if="activeTab === 'm15a'"
                 ref="signaturePad" 
@@ -291,7 +292,7 @@
                 :h="'200px'" 
                 @end="saveSignature"
                 class="signature-canvas"
-                style="width: 100%; height: 100%; background: #ffffff;"
+                style="width: 100%; height: 100%;"
               />
             </div>
 
@@ -376,14 +377,15 @@ const disabledM15aDate = (time) => {
   return time.getTime() < start || time.getTime() > end;
 };
 
-// ================= 畫布簽名邏輯 (強制純白背景 JPEG) =================
-const signaturePad = ref(null);      
-const signaturePadM15 = ref(null);   
+// ================= 畫布簽名邏輯 =================
+const signaturePad = ref(null);      // M15A 
+const signaturePadM15 = ref(null);   // M15 
 
+// 🟢 恢復成原本的預設背景 (透明)，以維持之前的顯示風格
 const state = reactive({
   option: {
     penColor: "rgb(0, 0, 0)", 
-    backgroundColor: "rgb(255, 255, 255)", // 💡 強制白色背景，防止透明 PNG 在 Excel 中破圖
+    backgroundColor: "rgba(0,0,0,0)", 
     minWidth: 2, 
     maxWidth: 4
   }
@@ -392,7 +394,7 @@ const state = reactive({
 // M15A
 const saveSignature = () => {
   if (signaturePad.value) {
-    m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/jpeg"); // 💡 強制轉存 JPEG
+    m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
   }
 };
 const clearSignature = () => {
@@ -405,7 +407,7 @@ const clearSignature = () => {
 // M15
 const saveSignatureM15 = () => {
   if (signaturePadM15.value) {
-    m15Form.value.signatureImageBase64 = signaturePadM15.value.save("image/jpeg"); // 💡 強制轉存 JPEG
+    m15Form.value.signatureImageBase64 = signaturePadM15.value.save("image/png");
   }
 };
 const clearSignatureM15 = () => {
@@ -544,9 +546,11 @@ const formatExcelTimeRange = (s1, s2, s3) => {
   return lines.join('\n');
 };
 
-// ================= 🟢 M15 匯出邏輯 (假期申請表) =================
+// ================= 🟢 M15 匯出邏輯 =================
 const exportM15 = async () => {
-  if (signaturePadM15.value) m15Form.value.signatureImageBase64 = signaturePadM15.value.save("image/jpeg");
+  if (signaturePadM15.value) {
+    m15Form.value.signatureImageBase64 = signaturePadM15.value.save("image/png");
+  }
 
   const p = personalInfo.value;
   if (!p.name || !p.position || !p.dept || !p.phone || !m15Form.value.totalDateRange || m15Form.value.totalDateRange.length !== 2) {
@@ -566,7 +570,10 @@ const exportM15 = async () => {
 
   try {
     const response = await fetch('/M15A_假期申請表.xlsx');
-    if (!response.ok) throw new Error('讀取失敗：找不到 M15A_假期申請表.xlsx，請確認檔名！');
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('text/html')) {
+      throw new Error('讀取失敗：找不到 M15A_假期申請表.xlsx，請確認檔名！');
+    }
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
@@ -636,28 +643,21 @@ const exportM15 = async () => {
       }
     });
 
-    // 💡 文字防呆備案：先寫入文字，萬一圖片渲染失敗還有證明
-    ws.getCell('B24').value = '✍️ [已電子簽名]';
-    ws.getCell('L24').value = '✍️ [已電子簽名]';
-
-    // 💡 絕對像素定位防破圖 (M15)
+    // 🟢 恢復成原版：使用 ext 屬性，指定寫入 B24 與 L24，保持 PNG 格式
     if (m15Form.value.signatureImageBase64) {
-      const rawBase64 = m15Form.value.signatureImageBase64.includes('base64,') 
-        ? m15Form.value.signatureImageBase64.split('base64,')[1] 
-        : m15Form.value.signatureImageBase64;
-
-      const imageId = workbook.addImage({ base64: rawBase64, extension: 'jpeg' }); // 強制使用 JPEG
+      const rawBase64 = m15Form.value.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
+      const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
       
-      // 使用絕對像素 ext 定位，不會觸發 Excel 邊界計算錯誤
-      ws.addImage(imageId, { tl: { col: 1, row: 23 }, ext: { width: 120, height: 40 } }); // B24 (row index 23)
-      ws.addImage(imageId, { tl: { col: 11, row: 23 }, ext: { width: 120, height: 40 } }); // L24
+      ws.addImage(imageId, { tl: { col: 1, row: 23 }, ext: { width: 150, height: 60 } }); // B24
+      ws.addImage(imageId, { tl: { col: 11, row: 23 }, ext: { width: 150, height: 60 } }); // L24
     }
 
+    // 🟢 日期改到 B26 / L26
     const todayDateStr = formatExcelDate(new Date());
-    ws.getCell('B25').value = todayDateStr; 
-    ws.getCell('B25').alignment = { vertical: 'middle', horizontal: 'left' };
-    ws.getCell('L25').value = todayDateStr; 
-    ws.getCell('L25').alignment = { vertical: 'middle', horizontal: 'left' };
+    ws.getCell('B26').value = todayDateStr; 
+    ws.getCell('B26').alignment = { vertical: 'middle', horizontal: 'left' };
+    ws.getCell('L26').value = todayDateStr; 
+    ws.getCell('L26').alignment = { vertical: 'middle', horizontal: 'left' };
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -669,9 +669,11 @@ const exportM15 = async () => {
   }
 };
 
-// ================= 🟢 M15A 匯出邏輯 (上班時間調動表) =================
+// ================= 🟢 M15A 匯出邏輯 =================
 const exportM15A = async () => {
-  if (signaturePad.value) m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/jpeg");
+  if (signaturePad.value) {
+    m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
+  }
 
   const f = m15aForm.value;
   const p = personalInfo.value;
@@ -686,7 +688,10 @@ const exportM15A = async () => {
 
   try {
     const response = await fetch('/M15A上班時間調動表.xlsx');
-    if (!response.ok) throw new Error('讀取失敗：找不到 M15A上班時間調動表.xlsx，請確認檔名！');
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('text/html')) {
+      throw new Error('讀取失敗：找不到 M15A上班時間調動表.xlsx，請確認檔名！');
+    }
     
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
@@ -740,21 +745,13 @@ const exportM15A = async () => {
       }
     });
 
-    // 💡 文字防呆備案
-    ws.getCell('B22').value = '✍️ [已電子簽名]';
-    ws.getCell('L22').value = '✍️ [已電子簽名]';
-
-    // 💡 絕對像素定位防破圖 (M15A)
     if (f.signatureImageBase64) {
-      const rawBase64 = f.signatureImageBase64.includes('base64,') 
-        ? f.signatureImageBase64.split('base64,')[1] 
-        : f.signatureImageBase64;
+      const rawBase64 = f.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
 
-      const imageId = workbook.addImage({ base64: rawBase64, extension: 'jpeg' }); // 強制使用 JPEG
+      const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
       
-      // 使用絕對像素 ext 定位，不會觸發 Excel 邊界計算錯誤
-      ws.addImage(imageId, { tl: { col: 1, row: 21 }, ext: { width: 120, height: 40 } }); // B22 (row index 21)
-      ws.addImage(imageId, { tl: { col: 11, row: 21 }, ext: { width: 120, height: 40 } }); // L22
+      ws.addImage(imageId, { tl: { col: 1.1, row: 20.8 }, br: { col: 3.8, row: 22.5 }, editAs: 'oneCell' });
+      ws.addImage(imageId, { tl: { col: 11.1, row: 20.8 }, br: { col: 13.8, row: 22.5 }, editAs: 'oneCell' });
     }
 
     const todayDateStr = formatExcelDate(new Date());
