@@ -138,6 +138,7 @@
                 :sigOption="state.option" 
                 :w="'100%'" 
                 :h="'200px'" 
+                @end="saveSignatureM15"
                 class="signature-canvas"
                 style="width: 100%; height: 100%;"
               />
@@ -277,7 +278,7 @@
             <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工手寫簽署驗證</h4>
             
             <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (同時自動填寫 B23 / L23)</span>
+              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (同時自動填寫 B22 / L22)</span>
               <el-button type="danger" plain size="small" @click="clearSignature">清除重簽</el-button>
             </div>
             
@@ -287,6 +288,7 @@
                 :sigOption="state.option" 
                 :w="'100%'" 
                 :h="'200px'" 
+                @end="saveSignature"
                 class="signature-canvas"
                 style="width: 100%; height: 100%;"
               />
@@ -377,7 +379,7 @@ const disabledM15aDate = (time) => {
 const signaturePad = ref(null);      // M15A 
 const signaturePadM15 = ref(null);   // M15 
 
-// 透明背景，不破壞 Excel 格線
+// 透明背景
 const state = reactive({
   option: {
     penColor: "rgb(0, 0, 0)", 
@@ -387,6 +389,11 @@ const state = reactive({
   }
 });
 
+const saveSignature = () => {
+  if (signaturePad.value) {
+    m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
+  }
+};
 const clearSignature = () => {
   if (signaturePad.value) {
     signaturePad.value.clear();
@@ -394,6 +401,11 @@ const clearSignature = () => {
   }
 };
 
+const saveSignatureM15 = () => {
+  if (signaturePadM15.value) {
+    m15Form.value.signatureImageBase64 = signaturePadM15.value.save("image/png");
+  }
+};
 const clearSignatureM15 = () => {
   if (signaturePadM15.value) {
     signaturePadM15.value.clear();
@@ -528,7 +540,6 @@ const formatExcelTimeRange = (s1, s2, s3) => {
 
 // ================= 🟢 M15 匯出邏輯 =================
 const exportM15 = async () => {
-  // 確保在匯出瞬間獲取簽名
   if (signaturePadM15.value) {
     m15Form.value.signatureImageBase64 = signaturePadM15.value.save("image/png");
   }
@@ -560,7 +571,7 @@ const exportM15 = async () => {
       
     const formattedTotal = `${formatExcelDate(m15Form.value.totalDateRange[0])} 至 ${formatExcelDate(m15Form.value.totalDateRange[1])}`;
 
-    // 寫入文字資料，不觸碰 alignment 以防破壞結構
+    // 寫入文字資料
     ws.getCell('E4').value = p.name;       
     ws.getCell('H4').value = p.dept;       
     ws.getCell('E5').value = p.phone;      
@@ -611,18 +622,15 @@ const exportM15 = async () => {
       }
     });
 
-    // 🟢 插入簽名：使用 tl 和 br 來精準放大並鎖定在 B24 ~ C25 之間
     if (m15Form.value.signatureImageBase64) {
-      const rawBase64 = m15Form.value.signatureImageBase64.split(',')[1];
+      const rawBase64 = m15Form.value.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
       const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
       
-      // 正本 B24 到 C25
       ws.addImage(imageId, { 
         tl: { col: 1, row: 23 }, 
         br: { col: 3, row: 25 }, 
         editAs: 'oneCell' 
       });
-      // 副本 L24 到 M25
       ws.addImage(imageId, { 
         tl: { col: 11, row: 23 }, 
         br: { col: 13, row: 25 }, 
@@ -630,7 +638,6 @@ const exportM15 = async () => {
       });
     }
 
-    // 🟢 日期填入 B26 / L26
     const todayDateStr = formatExcelDate(new Date());
     ws.getCell('B26').value = todayDateStr; 
     ws.getCell('L26').value = todayDateStr; 
@@ -647,7 +654,6 @@ const exportM15 = async () => {
 
 // ================= 🟢 M15A 匯出邏輯 =================
 const exportM15A = async () => {
-  // 確保在匯出瞬間獲取簽名
   if (signaturePad.value) {
     m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
   }
@@ -675,7 +681,7 @@ const exportM15A = async () => {
     let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.worksheets[0];
     if (!ws) throw new Error('無法讀取工作表 M15A上班時間調動表！');
 
-    // 寫入文字資料，不觸碰 alignment 以防破壞結構
+    // 🟢 移除了所有會破壞檔案結構的 alignment 樣式覆寫！
     ws.getCell('C4').value = p.name;      
     ws.getCell('I4').value = p.dept;      
     ws.getCell('C5').value = p.phone;     
@@ -714,18 +720,18 @@ const exportM15A = async () => {
       }
     });
 
-    // 🟢 插入簽名：使用 tl 和 br 來精準放大並鎖定在 B21 ~ C22 之間
+    // 🟢 精確寫入 B22 到 C22 (row index 為 21)
     if (f.signatureImageBase64) {
-      const rawBase64 = f.signatureImageBase64.split(',')[1];
+      const rawBase64 = f.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
       const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
       
-      // 正本 B21 到 C22
+      // 正本 B22 到 C22
       ws.addImage(imageId, { 
         tl: { col: 1, row: 21 }, 
         br: { col: 3, row: 22 }, 
         editAs: 'oneCell' 
       });
-      // 副本 L21 到 M22
+      // 副本 L22 到 M22
       ws.addImage(imageId, { 
         tl: { col: 11, row: 21 }, 
         br: { col: 13, row: 22 }, 
@@ -733,7 +739,6 @@ const exportM15A = async () => {
       });
     }
 
-    // 🟢 日期填寫在 B23 / L23
     const todayDateStr = formatExcelDate(new Date());
     ws.getCell('B23').value = todayDateStr; 
     ws.getCell('L23').value = todayDateStr; 
