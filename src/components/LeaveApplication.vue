@@ -487,7 +487,7 @@ const exportM15 = async () => {
   }
 
   try {
-    // 💡 精準讀取 M15A_假期申請表.xlsx
+    // 💡 精確讀取 M15A_假期申請表.xlsx
     const response = await fetch('/M15A_假期申請表.xlsx');
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('text/html')) {
@@ -497,7 +497,7 @@ const exportM15 = async () => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
     
-    // 💡 精準讀取 M15假期申請表 工作表
+    // 💡 抓取對應的工作表
     const ws = workbook.getWorksheet('M15假期申請表') || workbook.worksheets[0]; 
     if (!ws) throw new Error('無法讀取工作表 M15假期申請表！');
     
@@ -595,7 +595,7 @@ const exportM15A = async () => {
   }
 
   try {
-    // 💡 精準讀取 M15A上班時間調動表.xlsx
+    // 💡 精確讀取 M15A上班時間調動表.xlsx
     const response = await fetch('/M15A上班時間調動表.xlsx');
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('text/html')) {
@@ -605,7 +605,7 @@ const exportM15A = async () => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
     
-    // 💡 精準讀取 M15A上班時間調動表 工作表
+    // 💡 抓取對應的工作表
     let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.worksheets[0];
     if (!ws) throw new Error('無法讀取工作表 M15A上班時間調動表！');
 
@@ -656,17 +656,25 @@ const exportM15A = async () => {
     });
 
     if (f.signatureImageBase64) {
-      const rawBase64 = f.signatureImageBase64.includes(',') 
-        ? f.signatureImageBase64.split(',')[1] 
-        : f.signatureImageBase64;
+      // 去除 Base64 前綴，避免破壞圖片結構
+      const rawBase64 = f.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
 
       const imageId = workbook.addImage({
         base64: rawBase64,
         extension: 'png',
       });
       
-      ws.addImage(imageId, { tl: { col: 1, row: 21 }, ext: { width: 150, height: 60 }, editAs: 'absolute' });
-      ws.addImage(imageId, { tl: { col: 11, row: 21 }, ext: { width: 150, height: 60 }, editAs: 'absolute' });
+      // 💡 關鍵修復：使用 tl (Top-Left) 和 br (Bottom-Right) 鎖定儲存格邊界，防止 Excel 破圖報錯
+      ws.addImage(imageId, { 
+        tl: { col: 1.1, row: 21.1 }, 
+        br: { col: 4.9, row: 23.9 }, 
+        editAs: 'oneCell' 
+      });
+      ws.addImage(imageId, { 
+        tl: { col: 11.1, row: 21.1 }, 
+        br: { col: 14.9, row: 23.9 }, 
+        editAs: 'oneCell' 
+      });
     }
 
     const todayDateStr = formatExcelDate(new Date());
@@ -678,7 +686,7 @@ const exportM15A = async () => {
     const buffer = await workbook.xlsx.writeBuffer();
     const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     saveAs(new Blob([buffer], { type: blobType }), `M15A_上班時間調動表_${p.name}.xlsx`);
-    ElMessage.success('M15A 匯出成功！');
+    ElMessage.success('M15A 時間調動表匯出成功！');
   } catch (err) { 
     console.error(err);
     ElMessage.error(err.message); 
