@@ -598,7 +598,7 @@ const exportM15 = async () => {
     // 寫入左半部
     ws.getCell('E4').value = p.name;       
     ws.getCell('H4').value = p.dept;       
-    ws.getCell('E5').value = p.phone;      
+    ws.getCell('F5').value = p.phone;      
     ws.getCell('H5').value = p.position;   
     ws.getCell('G7').value = formattedTotal; 
     
@@ -609,7 +609,7 @@ const exportM15 = async () => {
     // 寫入右半部
     ws.getCell('O4').value = p.name;       
     ws.getCell('R4').value = p.dept;       
-    ws.getCell('O5').value = p.phone;      
+    ws.getCell('P5').value = p.phone;      
     ws.getCell('R5').value = p.position;   
     ws.getCell('Q7').value = formattedTotal; 
     
