@@ -596,7 +596,7 @@ const exportM15 = async () => {
     const formattedTotal = `${formatExcelDate(m15Form.value.totalDateRange[0])} 至 ${formatExcelDate(m15Form.value.totalDateRange[1])}`;
 
     // 寫入左半部
-    ws.getCell('E4').value = p.name;       
+    ws.getCell('F4').value = p.name;       
     ws.getCell('H4').value = p.dept;       
     ws.getCell('F5').value = p.phone;      
     ws.getCell('H5').value = p.position;   
@@ -607,7 +607,7 @@ const exportM15 = async () => {
     c9Cell.alignment = { wrapText: true, vertical: 'middle', horizontal: 'left' };
 
     // 寫入右半部
-    ws.getCell('O4').value = p.name;       
+    ws.getCell('P4').value = p.name;       
     ws.getCell('R4').value = p.dept;       
     ws.getCell('P5').value = p.phone;      
     ws.getCell('R5').value = p.position;   
