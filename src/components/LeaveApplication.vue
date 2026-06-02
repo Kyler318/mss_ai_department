@@ -128,12 +128,13 @@
             <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工手寫簽署驗證</h4>
             
             <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (簽名將顯示於表單底部，日期填入 B26 / L26)</span>
+              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (簽名顯示於 B24，日期填入 B26 / L26)</span>
               <el-button type="danger" plain size="small" @click="clearSignatureM15">清除重簽</el-button>
             </div>
             
             <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
               <Vue3Signature 
+                v-if="activeTab === 'm15'"
                 ref="signaturePadM15" 
                 :sigOption="state.option" 
                 :w="'100%'" 
@@ -278,12 +279,13 @@
             <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工手寫簽署驗證</h4>
             
             <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (同時自動填寫 B22 / L22)</span>
+              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (簽名顯示於 B22-C22，日期填入 B23 / L23)</span>
               <el-button type="danger" plain size="small" @click="clearSignature">清除重簽</el-button>
             </div>
             
             <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
               <Vue3Signature 
+                v-if="activeTab === 'm15a'"
                 ref="signaturePad" 
                 :sigOption="state.option" 
                 :w="'100%'" 
@@ -538,6 +540,25 @@ const formatExcelTimeRange = (s1, s2, s3) => {
   return lines.join('\n');
 };
 
+// ================= 🟢 [防修復] 合併儲存格安全寫入助手 =================
+const safeSetCell = (ws, cellRef, value, wrap = false) => {
+  try {
+    let cell = ws.getCell(cellRef);
+    // 💡 若該格子是合併儲存格，強制將值寫入「Master 主格」，徹底避免檔案損壞！
+    if (cell.isMerged && cell.master) {
+      cell = cell.master;
+    }
+    cell.value = value;
+    
+    // 只增加 wrapText，不覆寫原本 Excel 裡漂亮的置中對齊
+    if (wrap) {
+      cell.alignment = { ...(cell.alignment || {}), wrapText: true };
+    }
+  } catch (e) {
+    console.warn('Set cell error', e);
+  }
+};
+
 // ================= 🟢 M15 匯出邏輯 =================
 const exportM15 = async () => {
   if (signaturePadM15.value) {
@@ -571,30 +592,30 @@ const exportM15 = async () => {
       
     const formattedTotal = `${formatExcelDate(m15Form.value.totalDateRange[0])} 至 ${formatExcelDate(m15Form.value.totalDateRange[1])}`;
 
-    // 寫入文字資料
-    ws.getCell('E4').value = p.name;       
-    ws.getCell('H4').value = p.dept;       
-    ws.getCell('E5').value = p.phone;      
-    ws.getCell('H5').value = p.position;   
-    ws.getCell('G7').value = formattedTotal; 
-    ws.getCell('C9').value = `[假期類別]\n${finalLeaveType}`; 
+    // 使用安全寫入助手
+    safeSetCell(ws, 'E4', p.name);       
+    safeSetCell(ws, 'H4', p.dept);       
+    safeSetCell(ws, 'E5', p.phone);      
+    safeSetCell(ws, 'H5', p.position);   
+    safeSetCell(ws, 'G7', formattedTotal); 
+    safeSetCell(ws, 'C9', `[假期類別]\n${finalLeaveType}`, true); 
 
-    ws.getCell('O4').value = p.name;       
-    ws.getCell('R4').value = p.dept;       
-    ws.getCell('O5').value = p.phone;      
-    ws.getCell('R5').value = p.position;   
-    ws.getCell('Q7').value = formattedTotal; 
-    ws.getCell('M9').value = `[假期類別]\n${finalLeaveType}`; 
+    safeSetCell(ws, 'O4', p.name);       
+    safeSetCell(ws, 'R4', p.dept);       
+    safeSetCell(ws, 'O5', p.phone);      
+    safeSetCell(ws, 'R5', p.position);   
+    safeSetCell(ws, 'Q7', formattedTotal); 
+    safeSetCell(ws, 'M9', `[假期類別]\n${finalLeaveType}`, true); 
 
     if (m15TotalHours.value > 0) {
       const h = Math.floor(m15TotalHours.value);
       const m = Math.round((m15TotalHours.value - h) * 60);
       const excelTimeStr = `共 ${h} 小時hrs ${m} 分鐘mins`;
 
-      ws.getCell('E8').value = m15TotalDays.value; 
-      ws.getCell('G8').value = excelTimeStr;       
-      ws.getCell('O8').value = m15TotalDays.value; 
-      ws.getCell('Q8').value = excelTimeStr;       
+      safeSetCell(ws, 'E8', m15TotalDays.value); 
+      safeSetCell(ws, 'G8', excelTimeStr);       
+      safeSetCell(ws, 'O8', m15TotalDays.value); 
+      safeSetCell(ws, 'Q8', excelTimeStr);       
     }
 
     m15Form.value.records.forEach((r, idx) => {
@@ -602,45 +623,38 @@ const exportM15 = async () => {
       if (m15Form.value.leaveType === '補鐘/補假 Compansention leave') {
         if (r.manualStart || r.manualEnd) {
           const manualHrs = parseFloat(r.manualHours) || 0;
-          ws.getCell(`G${rowNum}`).value = r.manualStart;
-          ws.getCell(`H${rowNum}`).value = r.manualEnd;
-          ws.getCell(`I${rowNum}`).value = manualHrs > 0 ? `${manualHrs}H` : '';
-          ws.getCell(`Q${rowNum}`).value = r.manualStart;
-          ws.getCell(`R${rowNum}`).value = r.manualEnd;
-          ws.getCell(`S${rowNum}`).value = manualHrs > 0 ? `${manualHrs}H` : '';
+          safeSetCell(ws, `G${rowNum}`, r.manualStart);
+          safeSetCell(ws, `H${rowNum}`, r.manualEnd);
+          safeSetCell(ws, `I${rowNum}`, manualHrs > 0 ? `${manualHrs}H` : '');
+          safeSetCell(ws, `Q${rowNum}`, r.manualStart);
+          safeSetCell(ws, `R${rowNum}`, r.manualEnd);
+          safeSetCell(ws, `S${rowNum}`, manualHrs > 0 ? `${manualHrs}H` : '');
         }
       } else {
         if (r.dateRange && r.dateRange.length === 2) {
           const hrs = calculateLeaveHours(r.dateRange);
-          ws.getCell(`G${rowNum}`).value = formatExcelDate(r.dateRange[0]);
-          ws.getCell(`H${rowNum}`).value = formatExcelDate(r.dateRange[1]);
-          ws.getCell(`I${rowNum}`).value = hrs > 0 ? `${hrs}H` : '';
-          ws.getCell(`Q${rowNum}`).value = formatExcelDate(r.dateRange[0]);
-          ws.getCell(`R${rowNum}`).value = formatExcelDate(r.dateRange[1]);
-          ws.getCell(`S${rowNum}`).value = hrs > 0 ? `${hrs}H` : '';
+          safeSetCell(ws, `G${rowNum}`, formatExcelDate(r.dateRange[0]));
+          safeSetCell(ws, `H${rowNum}`, formatExcelDate(r.dateRange[1]));
+          safeSetCell(ws, `I${rowNum}`, hrs > 0 ? `${hrs}H` : '');
+          safeSetCell(ws, `Q${rowNum}`, formatExcelDate(r.dateRange[0]));
+          safeSetCell(ws, `R${rowNum}`, formatExcelDate(r.dateRange[1]));
+          safeSetCell(ws, `S${rowNum}`, hrs > 0 ? `${hrs}H` : '');
         }
       }
     });
 
+    // 🟢 M15 簽名插入 (B24 附近)
     if (m15Form.value.signatureImageBase64) {
       const rawBase64 = m15Form.value.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
       const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
-      
-      ws.addImage(imageId, { 
-        tl: { col: 1, row: 23 }, 
-        br: { col: 3, row: 25 }, 
-        editAs: 'oneCell' 
-      });
-      ws.addImage(imageId, { 
-        tl: { col: 11, row: 23 }, 
-        br: { col: 13, row: 25 }, 
-        editAs: 'oneCell' 
-      });
+      ws.addImage(imageId, { tl: { col: 1, row: 23 }, ext: { width: 140, height: 45 } }); // B24
+      ws.addImage(imageId, { tl: { col: 11, row: 23 }, ext: { width: 140, height: 45 } }); // L24
     }
 
+    // 日期填入 B26 / L26
     const todayDateStr = formatExcelDate(new Date());
-    ws.getCell('B26').value = todayDateStr; 
-    ws.getCell('L26').value = todayDateStr; 
+    safeSetCell(ws, 'B26', todayDateStr); 
+    safeSetCell(ws, 'L26', todayDateStr); 
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -652,7 +666,7 @@ const exportM15 = async () => {
   }
 };
 
-// ================= 🟢 M15A 匯出邏輯 =================
+// ================= 🟢 M15A 匯出邏輯 (上班時間調動表) =================
 const exportM15A = async () => {
   if (signaturePad.value) {
     m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
@@ -681,20 +695,20 @@ const exportM15A = async () => {
     let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.worksheets[0];
     if (!ws) throw new Error('無法讀取工作表 M15A上班時間調動表！');
 
-    // 🟢 移除了所有會破壞檔案結構的 alignment 樣式覆寫！
-    ws.getCell('C4').value = p.name;      
-    ws.getCell('I4').value = p.dept;      
-    ws.getCell('C5').value = p.phone;     
-    ws.getCell('I5').value = p.position;  
-    ws.getCell('E7').value = formatSummaryDateRange(f.totalDateRange); 
-    ws.getCell('C8').value = f.reason;    
+    // 💡 100% 安全寫入，不再觸發 Excel 「單元格信息需要修復」！
+    safeSetCell(ws, 'C4', p.name);      
+    safeSetCell(ws, 'I4', p.dept);      
+    safeSetCell(ws, 'C5', p.phone);     
+    safeSetCell(ws, 'I5', p.position);  
+    safeSetCell(ws, 'E7', formatSummaryDateRange(f.totalDateRange)); 
+    safeSetCell(ws, 'C8', f.reason);    
 
-    ws.getCell('M4').value = p.name;      
-    ws.getCell('S4').value = p.dept;      
-    ws.getCell('M5').value = p.phone;     
-    ws.getCell('S5').value = p.position;  
-    ws.getCell('O7').value = formatSummaryDateRange(f.totalDateRange); 
-    ws.getCell('M8').value = f.reason;    
+    safeSetCell(ws, 'M4', p.name);      
+    safeSetCell(ws, 'S4', p.dept);      
+    safeSetCell(ws, 'M5', p.phone);     
+    safeSetCell(ws, 'S5', p.position);  
+    safeSetCell(ws, 'O7', formatSummaryDateRange(f.totalDateRange)); 
+    safeSetCell(ws, 'M8', f.reason);    
 
     const cellMap = [
       { oD: 'C11', oT: 'E11', aD: 'H11', aT: 'I11', rOD: 'M11', rOT: 'O11', rAD: 'R11', rAT: 'S11' }, 
@@ -705,43 +719,34 @@ const exportM15A = async () => {
     f.records.forEach((r, i) => {
       const map = cellMap[i];
       if (r.origDate) {
-        ws.getCell(map.oD).value = formatExcelDate(r.origDate);
-        ws.getCell(map.rOD).value = formatExcelDate(r.origDate); 
+        safeSetCell(ws, map.oD, formatExcelDate(r.origDate));
+        safeSetCell(ws, map.rOD, formatExcelDate(r.origDate)); 
         const timeRangeStr = formatExcelTimeRange(r.origS1, r.origS2, r.origS3);
-        ws.getCell(map.oT).value = timeRangeStr;
-        ws.getCell(map.rOT).value = timeRangeStr;      
+        safeSetCell(ws, map.oT, timeRangeStr, true);
+        safeSetCell(ws, map.rOT, timeRangeStr, true);      
       }
       if (r.adjDate) {
-        ws.getCell(map.aD).value = formatExcelDate(r.adjDate);
-        ws.getCell(map.rAD).value = formatExcelDate(r.adjDate); 
+        safeSetCell(ws, map.aD, formatExcelDate(r.adjDate));
+        safeSetCell(ws, map.rAD, formatExcelDate(r.adjDate)); 
         const timeRangeStr = formatExcelTimeRange(r.adjS1, r.adjS2, r.adjS3);
-        ws.getCell(map.aT).value = timeRangeStr;
-        ws.getCell(map.rAT).value = timeRangeStr;     
+        safeSetCell(ws, map.aT, timeRangeStr, true);
+        safeSetCell(ws, map.rAT, timeRangeStr, true);     
       }
     });
 
-    // 🟢 精確寫入 B22 到 C22 (row index 為 21)
+    // 🟢 M15A 簽名精確插入：B22 - C22 (使用絕對整數座標，防止 Excel 報錯)
     if (f.signatureImageBase64) {
       const rawBase64 = f.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
       const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
       
-      // 正本 B22 到 C22
-      ws.addImage(imageId, { 
-        tl: { col: 1, row: 21 }, 
-        br: { col: 3, row: 22 }, 
-        editAs: 'oneCell' 
-      });
-      // 副本 L22 到 M22
-      ws.addImage(imageId, { 
-        tl: { col: 11, row: 21 }, 
-        br: { col: 13, row: 22 }, 
-        editAs: 'oneCell' 
-      });
+      // row index 21 是 Excel 中的第 22 行
+      ws.addImage(imageId, { tl: { col: 1, row: 21 }, ext: { width: 140, height: 45 } }); // B22
+      ws.addImage(imageId, { tl: { col: 11, row: 21 }, ext: { width: 140, height: 45 } }); // L22
     }
 
     const todayDateStr = formatExcelDate(new Date());
-    ws.getCell('B23').value = todayDateStr; 
-    ws.getCell('L23').value = todayDateStr; 
+    safeSetCell(ws, 'B23', todayDateStr); 
+    safeSetCell(ws, 'L23', todayDateStr); 
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
