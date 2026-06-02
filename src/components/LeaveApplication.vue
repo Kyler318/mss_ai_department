@@ -147,7 +147,7 @@
 
             <el-row :gutter="20">
               <el-col :span="12">
-                <el-form-item label="簽署日期 (B25/L25)">
+                <el-form-item label="簽署日期 (B26/L26)">
                   <el-input :value="getTodayStr()" disabled style="width: 100%;" />
                 </el-form-item>
               </el-col>
@@ -678,10 +678,10 @@ const exportM15 = async () => {
     }
 
     const todayDateStr = formatExcelDate(new Date());
-    ws.getCell('B25').value = todayDateStr; 
-    ws.getCell('B25').alignment = { vertical: 'middle', horizontal: 'left' };
-    ws.getCell('L25').value = todayDateStr; 
-    ws.getCell('L25').alignment = { vertical: 'middle', horizontal: 'left' };
+    ws.getCell('B26').value = todayDateStr; 
+    ws.getCell('B26').alignment = { vertical: 'middle', horizontal: 'left' };
+    ws.getCell('L26').value = todayDateStr; 
+    ws.getCell('L26').alignment = { vertical: 'middle', horizontal: 'left' };
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
