@@ -128,12 +128,13 @@
             <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工手寫簽署驗證</h4>
             
             <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (簽名顯示於 B24，日期填入 B26 / L26)</span>
+              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (簽名將顯示於表單底部，日期填入 B26 / L26)</span>
               <el-button type="danger" plain size="small" @click="clearSignatureM15">清除重簽</el-button>
             </div>
             
             <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
               <Vue3Signature 
+                v-if="activeTab === 'm15'"
                 ref="signaturePadM15" 
                 :sigOption="state.option" 
                 :w="'100%'" 
@@ -278,12 +279,13 @@
             <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工手寫簽署驗證</h4>
             
             <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (簽名顯示於 B22-C22，日期填入 B23 / L23)</span>
+              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (簽名顯示於 B22，日期填入 B23 / L23)</span>
               <el-button type="danger" plain size="small" @click="clearSignature">清除重簽</el-button>
             </div>
             
             <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
               <Vue3Signature 
+                v-if="activeTab === 'm15a'"
                 ref="signaturePad" 
                 :sigOption="state.option" 
                 :w="'100%'" 
@@ -379,7 +381,7 @@ const disabledM15aDate = (time) => {
 const signaturePad = ref(null);      // M15A 
 const signaturePadM15 = ref(null);   // M15 
 
-// 透明背景
+// 透明背景，不破壞 Excel 格線
 const state = reactive({
   option: {
     penColor: "rgb(0, 0, 0)", 
@@ -538,20 +540,15 @@ const formatExcelTimeRange = (s1, s2, s3) => {
   return lines.join('\n');
 };
 
-// ================= 🟢 [核心修復] 安全寫入儲存格 =================
-// 針對合併儲存格設計的防呆寫入，完全避免破壞 Excel 結構！
-const safeSetCell = (ws, cellRef, value, wrap = false) => {
+// ================= 🟢 [核心防護] 安全寫入助手 =================
+// 專門對付合併儲存格報錯的防護盾：絕不修改 alignment，遇到合併格自動找主格！
+const safeSetCell = (ws, cellRef, value) => {
   try {
     let cell = ws.getCell(cellRef);
     if (cell.isMerged && cell.master) {
-      cell = cell.master; // 遇到合併儲存格，強制寫入主格
+      cell = cell.master;
     }
     cell.value = value;
-    
-    // 絕不覆蓋原本的對齊屬性，只附加換行
-    if (wrap) {
-      cell.alignment = { ...(cell.alignment || {}), wrapText: true };
-    }
   } catch (e) {
     console.warn(`Set cell error at ${cellRef}:`, e);
   }
@@ -590,20 +587,20 @@ const exportM15 = async () => {
       
     const formattedTotal = `${formatExcelDate(m15Form.value.totalDateRange[0])} 至 ${formatExcelDate(m15Form.value.totalDateRange[1])}`;
 
-    // 使用安全寫入
+    // 💡 100% 安全寫入，不再觸發修復
     safeSetCell(ws, 'E4', p.name);       
     safeSetCell(ws, 'H4', p.dept);       
     safeSetCell(ws, 'E5', p.phone);      
     safeSetCell(ws, 'H5', p.position);   
     safeSetCell(ws, 'G7', formattedTotal); 
-    safeSetCell(ws, 'C9', `[假期類別]\n${finalLeaveType}`, true); 
+    safeSetCell(ws, 'C9', `[假期類別]\n${finalLeaveType}`); 
 
     safeSetCell(ws, 'O4', p.name);       
     safeSetCell(ws, 'R4', p.dept);       
     safeSetCell(ws, 'O5', p.phone);      
     safeSetCell(ws, 'R5', p.position);   
     safeSetCell(ws, 'Q7', formattedTotal); 
-    safeSetCell(ws, 'M9', `[假期類別]\n${finalLeaveType}`, true); 
+    safeSetCell(ws, 'M9', `[假期類別]\n${finalLeaveType}`); 
 
     if (m15TotalHours.value > 0) {
       const h = Math.floor(m15TotalHours.value);
@@ -641,22 +638,15 @@ const exportM15 = async () => {
       }
     });
 
+    // 🟢 插入簽名：使用 ext 絕對尺寸，放置於 B24 (Excel 行索引 23)
     if (m15Form.value.signatureImageBase64) {
       const rawBase64 = m15Form.value.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
       const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
-      
-      ws.addImage(imageId, { 
-        tl: { col: 1, row: 23 }, 
-        br: { col: 3, row: 25 }, 
-        editAs: 'oneCell' 
-      });
-      ws.addImage(imageId, { 
-        tl: { col: 11, row: 23 }, 
-        br: { col: 13, row: 25 }, 
-        editAs: 'oneCell' 
-      });
+      ws.addImage(imageId, { tl: { col: 1, row: 23 }, ext: { width: 140, height: 45 } }); // B24
+      ws.addImage(imageId, { tl: { col: 11, row: 23 }, ext: { width: 140, height: 45 } }); // L24
     }
 
+    // 🟢 日期填入 B26 / L26
     const todayDateStr = formatExcelDate(new Date());
     safeSetCell(ws, 'B26', todayDateStr); 
     safeSetCell(ws, 'L26', todayDateStr); 
@@ -671,7 +661,7 @@ const exportM15 = async () => {
   }
 };
 
-// ================= 🟢 M15A 匯出邏輯 =================
+// ================= 🟢 M15A 匯出邏輯 (上班時間調動表) =================
 const exportM15A = async () => {
   if (signaturePad.value) {
     m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
@@ -700,7 +690,7 @@ const exportM15A = async () => {
     let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.worksheets[0];
     if (!ws) throw new Error('無法讀取工作表 M15A上班時間調動表！');
 
-    // 💡 100% 安全寫入 M15A 的每一個格子！
+    // 💡 100% 安全寫入，絕不觸發修復
     safeSetCell(ws, 'C4', p.name);      
     safeSetCell(ws, 'I4', p.dept);      
     safeSetCell(ws, 'C5', p.phone);     
@@ -727,37 +717,29 @@ const exportM15A = async () => {
         safeSetCell(ws, map.oD, formatExcelDate(r.origDate));
         safeSetCell(ws, map.rOD, formatExcelDate(r.origDate)); 
         const timeRangeStr = formatExcelTimeRange(r.origS1, r.origS2, r.origS3);
-        safeSetCell(ws, map.oT, timeRangeStr, true);
-        safeSetCell(ws, map.rOT, timeRangeStr, true);      
+        safeSetCell(ws, map.oT, timeRangeStr);
+        safeSetCell(ws, map.rOT, timeRangeStr);      
       }
       if (r.adjDate) {
         safeSetCell(ws, map.aD, formatExcelDate(r.adjDate));
         safeSetCell(ws, map.rAD, formatExcelDate(r.adjDate)); 
         const timeRangeStr = formatExcelTimeRange(r.adjS1, r.adjS2, r.adjS3);
-        safeSetCell(ws, map.aT, timeRangeStr, true);
-        safeSetCell(ws, map.rAT, timeRangeStr, true);     
+        safeSetCell(ws, map.aT, timeRangeStr);
+        safeSetCell(ws, map.rAT, timeRangeStr);     
       }
     });
 
-    // 🟢 完美放置簽名：B22 - C22 (ExcelJS row index: 21 到 22)
+    // 🟢 M15A 簽名精確插入：B22 (使用絕對整數座標，防止 Excel 報錯)
     if (f.signatureImageBase64) {
       const rawBase64 = f.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
       const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
       
-      // 正本 B22 到 C22
-      ws.addImage(imageId, { 
-        tl: { col: 1, row: 21 }, 
-        br: { col: 3, row: 22 }, 
-        editAs: 'oneCell' 
-      });
-      // 副本 L22 到 M22
-      ws.addImage(imageId, { 
-        tl: { col: 11, row: 21 }, 
-        br: { col: 13, row: 22 }, 
-        editAs: 'oneCell' 
-      });
+      // row index 21 是 Excel 中的第 22 行 (B22)
+      ws.addImage(imageId, { tl: { col: 1, row: 21 }, ext: { width: 140, height: 45 } });
+      ws.addImage(imageId, { tl: { col: 11, row: 21 }, ext: { width: 140, height: 45 } });
     }
 
+    // 🟢 日期填入 B23 / L23
     const todayDateStr = formatExcelDate(new Date());
     safeSetCell(ws, 'B23', todayDateStr); 
     safeSetCell(ws, 'L23', todayDateStr); 
