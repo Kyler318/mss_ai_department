@@ -2,11 +2,11 @@
   <div class="leave-app-page">
     <el-tabs v-model="activeTab" type="border-card">
       
-      <el-tab-pane label="📄 M15 假期申請" name="m15">
+      <el-tab-pane label="📄 M15 假期申請" name="m15" lazy>
         <el-form label-width="130px" style="max-width: 950px; margin: 20px auto;">
           
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
-            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #409EFF; padding-left: 10px;">個人資料與總時段</h4>
+            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #409EFF; padding-left: 10px;">1.0 個人資料與總時段 (必填)</h4>
             <el-row :gutter="20">
               <el-col :span="8">
                 <el-form-item label="姓名" required><el-input v-model="personalInfo.name" placeholder="請輸入姓名" /></el-form-item>
@@ -29,7 +29,7 @@
                 <el-form-item label="職位" required><el-input v-model="personalInfo.position" placeholder="例如：教師" /></el-form-item>
               </el-col>
               <el-col :span="16">
-                <el-form-item label="整個休假時段" required>
+                <el-form-item label="整個休假時段 (G7)" required>
                   <el-date-picker
                     v-model="m15Form.totalDateRange"
                     type="daterange"
@@ -44,7 +44,7 @@
           </div>
 
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
-            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #E6A23C; padding-left: 10px;">假期申請明細</h4>
+            <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #E6A23C; padding-left: 10px;">2.0 假期申請明細</h4>
             
             <el-form-item label="休假類別" required>
               <div style="width: 100%;">
@@ -113,10 +113,10 @@
 
                 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #dcdfe6; display: flex; justify-content: flex-end; align-items: center; gap: 25px;">
                   <span style="font-size: 15px; color: #606266;">
-                    📅 總計休假天數：<strong style="color: #409EFF; font-size: 18px;">{{ m15TotalDays }}</strong> 天
+                    📅 總計休假天數 (E8)：<strong style="color: #409EFF; font-size: 18px;">{{ m15TotalDays }}</strong> 天
                   </span>
                   <span style="font-size: 15px; color: #606266;">
-                    ⏱️ 總計時數：<strong style="color: #67C23A; font-size: 18px;">{{ m15TotalHoursText }}</strong>
+                    ⏱️ 總計時數 (G8)：<strong style="color: #67C23A; font-size: 18px;">{{ m15TotalHoursText }}</strong>
                   </span>
                 </div>
 
@@ -134,7 +134,7 @@
             
             <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
               <Vue3Signature 
-                key="m15-sig"
+                v-if="activeTab === 'm15'"
                 ref="signaturePadM15" 
                 :sigOption="state.option" 
                 :w="'100%'" 
@@ -147,7 +147,7 @@
 
             <el-row :gutter="20">
               <el-col :span="12">
-                <el-form-item label="簽署日期">
+                <el-form-item label="簽署日期 (B25/L25)">
                   <el-input :value="getTodayStr()" disabled style="width: 100%;" />
                 </el-form-item>
               </el-col>
@@ -158,17 +158,17 @@
         </el-form>
       </el-tab-pane>
 
-      <el-tab-pane label="🔄 M15A 時間調動" name="m15a">
+      <el-tab-pane label="🔄 M15A 時間調動" name="m15a" lazy>
         <el-form label-width="110px" style="max-width: 950px; margin: 20px auto;">
           
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
             <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #409EFF; padding-left: 10px;">1.0 個人與調動資料 (必填)</h4>
             <el-row :gutter="20">
               <el-col :span="8">
-                <el-form-item label="姓名" required><el-input v-model="personalInfo.name" placeholder="請輸入姓名" /></el-form-item>
+                <el-form-item label="姓名 (C4)" required><el-input v-model="personalInfo.name" placeholder="請輸入姓名" /></el-form-item>
               </el-col>
               <el-col :span="8">
-                <el-form-item label="部門" required>
+                <el-form-item label="部門 (I4)" required>
                   <el-select v-model="personalInfo.dept" placeholder="請選擇部門" style="width: 100%;">
                     <el-option label="資訊科技/AI輔助部" value="資訊科技/AI輔助部" />
                     <el-option label="行政事務部" value="行政事務部" />
@@ -177,16 +177,16 @@
                 </el-form-item>
               </el-col>
               <el-col :span="8">
-                <el-form-item label="電話" required><el-input v-model="personalInfo.phone" placeholder="填寫聯絡電話" /></el-form-item>
+                <el-form-item label="電話 (C5)" required><el-input v-model="personalInfo.phone" placeholder="填寫聯絡電話" /></el-form-item>
               </el-col>
             </el-row>
             
             <el-row :gutter="20">
               <el-col :span="8">
-                <el-form-item label="職位" required><el-input v-model="personalInfo.position" placeholder="例如：教師" /></el-form-item>
+                <el-form-item label="職位 (I5)" required><el-input v-model="personalInfo.position" placeholder="例如：教師" /></el-form-item>
               </el-col>
               <el-col :span="16">
-                <el-form-item label="調動日期" required>
+                <el-form-item label="調動日期 (E7)" required>
                   <el-date-picker
                     v-model="m15aForm.totalDateRange"
                     type="daterange"
@@ -198,7 +198,7 @@
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-form-item label="調動原因" required>
+            <el-form-item label="調動原因 (C8)" required>
               <el-input v-model="m15aForm.reason" placeholder="請輸入原因..." />
             </el-form-item>
           </div>
@@ -285,7 +285,7 @@
             
             <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
               <Vue3Signature 
-                key="m15a-sig"
+                v-if="activeTab === 'm15a'"
                 ref="signaturePad" 
                 :sigOption="state.option" 
                 :w="'100%'" 
@@ -337,7 +337,7 @@ const m15Form = ref({
   totalDateRange: [], 
   leaveType: '有薪年假 Paid Annual leave', 
   otherLeaveType: '',
-  signatureImageBase64: '', // 新增 M15 簽名資料
+  signatureImageBase64: '', 
   records: [ 
     { dateRange: [], manualStart: '', manualEnd: '', manualHours: '' } 
   ]
@@ -362,7 +362,7 @@ const m15aForm = ref({
   ]
 });
 
-// ================= 日期選擇限制邏輯 (disabled-date) =================
+// ================= 🟢 日期選擇限制邏輯 (disabled-date) =================
 const disabledM15Date = (time) => {
   if (!m15Form.value.totalDateRange || m15Form.value.totalDateRange.length !== 2) {
     return false; 
@@ -553,9 +553,8 @@ const formatExcelTimeRange = (s1, s2, s3) => {
   return lines.join('\n');
 };
 
-// ================= 🟢 M15 匯出邏輯 (加入簽名寫入 B24/L24) =================
+// ================= 🟢 M15 匯出邏輯 =================
 const exportM15 = async () => {
-  // 自動儲存簽名
   if (signaturePadM15.value) {
     m15Form.value.signatureImageBase64 = signaturePadM15.value.save("image/png");
   }
@@ -595,10 +594,9 @@ const exportM15 = async () => {
       
     const formattedTotal = `${formatExcelDate(m15Form.value.totalDateRange[0])} 至 ${formatExcelDate(m15Form.value.totalDateRange[1])}`;
 
-    // 寫入左半部
-    ws.getCell('F4').value = p.name;       
+    ws.getCell('E4').value = p.name;       
     ws.getCell('H4').value = p.dept;       
-    ws.getCell('F5').value = p.phone;      
+    ws.getCell('E5').value = p.phone;      
     ws.getCell('H5').value = p.position;   
     ws.getCell('G7').value = formattedTotal; 
     
@@ -606,10 +604,9 @@ const exportM15 = async () => {
     c9Cell.value = `[假期類別]\n${finalLeaveType}`; 
     c9Cell.alignment = { wrapText: true, vertical: 'middle', horizontal: 'left' };
 
-    // 寫入右半部
-    ws.getCell('P4').value = p.name;       
+    ws.getCell('O4').value = p.name;       
     ws.getCell('R4').value = p.dept;       
-    ws.getCell('P5').value = p.phone;      
+    ws.getCell('O5').value = p.phone;      
     ws.getCell('R5').value = p.position;   
     ws.getCell('Q7').value = formattedTotal; 
     
@@ -617,7 +614,6 @@ const exportM15 = async () => {
     m9Cell.value = `[假期類別]\n${finalLeaveType}`; 
     m9Cell.alignment = { wrapText: true, vertical: 'middle', horizontal: 'left' };
 
-    // 寫入總計天數與總時數
     if (m15TotalHours.value > 0) {
       const h = Math.floor(m15TotalHours.value);
       const m = Math.round((m15TotalHours.value - h) * 60);
@@ -629,7 +625,6 @@ const exportM15 = async () => {
       ws.getCell('Q8').value = excelTimeStr;       
     }
 
-    // 動態寫入明細時段
     m15Form.value.records.forEach((r, idx) => {
       const rowNum = 10 + idx; 
       if (m15Form.value.leaveType === '補鐘/補假 Compansention leave') {
@@ -655,7 +650,6 @@ const exportM15 = async () => {
       }
     });
 
-    // ================= 插入 M15 簽名與日期 (B24/L24, B25/L25) =================
     if (m15Form.value.signatureImageBase64) {
       const rawBase64 = m15Form.value.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
       const imageId = workbook.addImage({
@@ -663,25 +657,15 @@ const exportM15 = async () => {
         extension: 'png',
       });
       
-      // 正本簽名 (B24區域)
-      ws.addImage(imageId, { 
-        tl: { col: 1.1, row: 22.8 }, 
-        br: { col: 3.8, row: 24.5 }, 
-        editAs: 'oneCell' 
-      });
-      // 副本簽名 (L24區域)
-      ws.addImage(imageId, { 
-        tl: { col: 11.1, row: 22.8 }, 
-        br: { col: 13.8, row: 24.5 }, 
-        editAs: 'oneCell' 
-      });
+      ws.addImage(imageId, { tl: { col: 1.1, row: 22.8 }, br: { col: 3.8, row: 24.5 }, editAs: 'oneCell' });
+      ws.addImage(imageId, { tl: { col: 11.1, row: 22.8 }, br: { col: 13.8, row: 24.5 }, editAs: 'oneCell' });
     }
 
     const todayDateStr = formatExcelDate(new Date());
-    ws.getCell('B26').value = todayDateStr; 
-    ws.getCell('B26').alignment = { vertical: 'middle', horizontal: 'left' };
-    ws.getCell('L26').value = todayDateStr; 
-    ws.getCell('L26').alignment = { vertical: 'middle', horizontal: 'left' };
+    ws.getCell('B25').value = todayDateStr; 
+    ws.getCell('B25').alignment = { vertical: 'middle', horizontal: 'left' };
+    ws.getCell('L25').value = todayDateStr; 
+    ws.getCell('L25').alignment = { vertical: 'middle', horizontal: 'left' };
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
