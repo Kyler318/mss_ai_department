@@ -2,7 +2,7 @@
   <div class="leave-app-page">
     <el-tabs v-model="activeTab" type="border-card">
       
-      <el-tab-pane label="📄 M15 假期申請" name="m15" lazy>
+      <el-tab-pane label="📄 M15 假期申請" name="m15">
         <el-form label-width="130px" style="max-width: 950px; margin: 20px auto;">
           
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
@@ -362,7 +362,7 @@ const m15aForm = ref({
   ]
 });
 
-// ================= 🟢 日期選擇限制邏輯 (disabled-date) =================
+// ================= 日期選擇限制邏輯 (disabled-date) =================
 const disabledM15Date = (time) => {
   if (!m15Form.value.totalDateRange || m15Form.value.totalDateRange.length !== 2) {
     return false; 
@@ -553,7 +553,7 @@ const formatExcelTimeRange = (s1, s2, s3) => {
   return lines.join('\n');
 };
 
-// ================= 🟢 M15 匯出邏輯 =================
+// ================= 🟢 M15 匯出邏輯 (假期申請表) =================
 const exportM15 = async () => {
   if (signaturePadM15.value) {
     m15Form.value.signatureImageBase64 = signaturePadM15.value.save("image/png");
@@ -594,9 +594,10 @@ const exportM15 = async () => {
       
     const formattedTotal = `${formatExcelDate(m15Form.value.totalDateRange[0])} 至 ${formatExcelDate(m15Form.value.totalDateRange[1])}`;
 
-    ws.getCell('F4').value = p.name;       
+    // 寫入左半部
+    ws.getCell('E4').value = p.name;       
     ws.getCell('H4').value = p.dept;       
-    ws.getCell('F5').value = p.phone;      
+    ws.getCell('E5').value = p.phone;      
     ws.getCell('H5').value = p.position;   
     ws.getCell('G7').value = formattedTotal; 
     
@@ -604,9 +605,10 @@ const exportM15 = async () => {
     c9Cell.value = `[假期類別]\n${finalLeaveType}`; 
     c9Cell.alignment = { wrapText: true, vertical: 'middle', horizontal: 'left' };
 
-    ws.getCell('P4').value = p.name;       
+    // 寫入右半部
+    ws.getCell('O4').value = p.name;       
     ws.getCell('R4').value = p.dept;       
-    ws.getCell('P5').value = p.phone;      
+    ws.getCell('O5').value = p.phone;      
     ws.getCell('R5').value = p.position;   
     ws.getCell('Q7').value = formattedTotal; 
     
@@ -614,6 +616,7 @@ const exportM15 = async () => {
     m9Cell.value = `[假期類別]\n${finalLeaveType}`; 
     m9Cell.alignment = { wrapText: true, vertical: 'middle', horizontal: 'left' };
 
+    // 寫入總計天數與總時數
     if (m15TotalHours.value > 0) {
       const h = Math.floor(m15TotalHours.value);
       const m = Math.round((m15TotalHours.value - h) * 60);
@@ -625,6 +628,7 @@ const exportM15 = async () => {
       ws.getCell('Q8').value = excelTimeStr;       
     }
 
+    // 動態寫入明細時段
     m15Form.value.records.forEach((r, idx) => {
       const rowNum = 10 + idx; 
       if (m15Form.value.leaveType === '補鐘/補假 Compansention leave') {
@@ -650,22 +654,20 @@ const exportM15 = async () => {
       }
     });
 
+    // 💡 絕對像素定位防破圖 (M15)
     if (m15Form.value.signatureImageBase64) {
       const rawBase64 = m15Form.value.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
-      const imageId = workbook.addImage({
-        base64: rawBase64,
-        extension: 'png',
-      });
+      const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
       
-      ws.addImage(imageId, { tl: { col: 1.1, row: 22.8 }, br: { col: 3.8, row: 24.5 }, editAs: 'oneCell' });
-      ws.addImage(imageId, { tl: { col: 11.1, row: 22.8 }, br: { col: 13.8, row: 24.5 }, editAs: 'oneCell' });
+      ws.addImage(imageId, { tl: { col: 1, row: 22 }, ext: { width: 130, height: 45 } }); // B23
+      ws.addImage(imageId, { tl: { col: 11, row: 22 }, ext: { width: 130, height: 45 } }); // L23
     }
 
     const todayDateStr = formatExcelDate(new Date());
-    ws.getCell('B26').value = todayDateStr; 
-    ws.getCell('B26').alignment = { vertical: 'middle', horizontal: 'left' };
-    ws.getCell('L26').value = todayDateStr; 
-    ws.getCell('L26').alignment = { vertical: 'middle', horizontal: 'left' };
+    ws.getCell('B25').value = todayDateStr; 
+    ws.getCell('B25').alignment = { vertical: 'middle', horizontal: 'left' };
+    ws.getCell('L25').value = todayDateStr; 
+    ws.getCell('L25').alignment = { vertical: 'middle', horizontal: 'left' };
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -677,7 +679,7 @@ const exportM15 = async () => {
   }
 };
 
-// ================= 🟢 M15A 匯出邏輯 =================
+// ================= 🟢 M15A 匯出邏輯 (上班時間調動表) =================
 const exportM15A = async () => {
   if (signaturePad.value) {
     m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
@@ -753,24 +755,13 @@ const exportM15A = async () => {
       }
     });
 
+    // 💡 絕對像素定位防破圖 (M15A)
     if (f.signatureImageBase64) {
       const rawBase64 = f.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
-
-      const imageId = workbook.addImage({
-        base64: rawBase64,
-        extension: 'png',
-      });
+      const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
       
-      ws.addImage(imageId, { 
-        tl: { col: 1.1, row: 20.8 }, 
-        br: { col: 3.8, row: 22.5 }, 
-        editAs: 'oneCell' 
-      });
-      ws.addImage(imageId, { 
-        tl: { col: 11.1, row: 20.8 }, 
-        br: { col: 13.8, row: 22.5 }, 
-        editAs: 'oneCell' 
-      });
+      ws.addImage(imageId, { tl: { col: 1, row: 20 }, ext: { width: 130, height: 45 } }); // B21
+      ws.addImage(imageId, { tl: { col: 11, row: 20 }, ext: { width: 130, height: 45 } }); // L21
     }
 
     const todayDateStr = formatExcelDate(new Date());
