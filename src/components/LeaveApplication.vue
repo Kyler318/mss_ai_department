@@ -2,8 +2,7 @@
   <div class="leave-app-page">
     <el-tabs v-model="activeTab" type="border-card">
       
-      <!-- ================= 📄 M15 假期申請表 ================= -->
-      <el-tab-pane label="📄 M15 假期申請" name="m15">
+      <el-tab-pane label="📄 M15 假期申請" name="m15" lazy>
         <el-form label-width="130px" style="max-width: 950px; margin: 20px auto;">
           
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
@@ -108,8 +107,7 @@
                 
                 <div style="font-size: 12px; color: #909399; margin-top: 10px; line-height: 1.6;">
                   💡 <b>一般假期：</b>系統會自動扣除週六與週日，並按每日 7.2 小時計算。<br>
-                  💡 <b>補鐘/補假：</b>請手動輸入具體的「幾點到幾點」與純數字的「總時數 (例如 2.5)」。<br>
-                  ⚠️ <b>注意：</b>實際休假明細的日期不可超出上方「整個休假時段」的範圍。
+                  💡 <b>補鐘/補假：</b>請手動輸入具體的「幾點到幾點」與純數字的「總時數 (例如 2.5)」。
                 </div>
 
                 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #dcdfe6; display: flex; justify-content: flex-end; align-items: center; gap: 25px;">
@@ -125,24 +123,20 @@
             </el-form-item>
           </div>
 
-          <!-- 3.0 M15 員工手寫簽署驗證 -->
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
             <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工手寫簽署驗證</h4>
             
             <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (同時自動填寫 B24 / L24)</span>
+              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (簽名將顯示於表單底部，日期填入 B26 / L26)</span>
               <el-button type="danger" plain size="small" @click="clearSignatureM15">清除重簽</el-button>
             </div>
             
             <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
-              <!-- 🟢 確保切換到 m15 時才載入畫布，防止尺寸計算錯誤 -->
               <Vue3Signature 
-                v-if="activeTab === 'm15'"
                 ref="signaturePadM15" 
                 :sigOption="state.option" 
                 :w="'100%'" 
                 :h="'200px'" 
-                @end="saveSignatureM15"
                 class="signature-canvas"
                 style="width: 100%; height: 100%;"
               />
@@ -161,7 +155,6 @@
         </el-form>
       </el-tab-pane>
 
-      <!-- ================= 🔄 M15A 上班時間調動表 ================= -->
       <el-tab-pane label="🔄 M15A 時間調動" name="m15a" lazy>
         <el-form label-width="110px" style="max-width: 950px; margin: 20px auto;">
           
@@ -279,24 +272,20 @@
             </el-row>
           </div>
 
-          <!-- 3.0 M15A 員工手寫簽署驗證 -->
           <div style="background: #fff; padding: 20px; border: 1px solid #dcdfe6; border-radius: 8px; margin-bottom: 20px;">
             <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工手寫簽署驗證</h4>
             
             <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (同時自動填寫 B22 / L22)</span>
+              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (同時自動填寫 B23 / L23)</span>
               <el-button type="danger" plain size="small" @click="clearSignature">清除重簽</el-button>
             </div>
             
             <div style="border: 2px dashed #dcdfe6; border-radius: 8px; background-color: #fafafa; margin-bottom: 20px; height: 200px; overflow: hidden; position: relative;">
-              <!-- 🟢 確保切換到 m15a 時才載入畫布，防止尺寸計算錯誤 -->
               <Vue3Signature 
-                v-if="activeTab === 'm15a'"
                 ref="signaturePad" 
                 :sigOption="state.option" 
                 :w="'100%'" 
                 :h="'200px'" 
-                @end="saveSignature"
                 class="signature-canvas"
                 style="width: 100%; height: 100%;"
               />
@@ -387,7 +376,7 @@ const disabledM15aDate = (time) => {
 const signaturePad = ref(null);      // M15A 
 const signaturePadM15 = ref(null);   // M15 
 
-// 🟢 恢復成原本的預設背景 (透明)，以維持之前的顯示風格
+// 🟢 恢復成透明背景，完美疊加在 Excel 的線上
 const state = reactive({
   option: {
     penColor: "rgb(0, 0, 0)", 
@@ -397,12 +386,6 @@ const state = reactive({
   }
 });
 
-// M15A
-const saveSignature = () => {
-  if (signaturePad.value) {
-    m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
-  }
-};
 const clearSignature = () => {
   if (signaturePad.value) {
     signaturePad.value.clear();
@@ -410,12 +393,6 @@ const clearSignature = () => {
   }
 };
 
-// M15
-const saveSignatureM15 = () => {
-  if (signaturePadM15.value) {
-    m15Form.value.signatureImageBase64 = signaturePadM15.value.save("image/png");
-  }
-};
 const clearSignatureM15 = () => {
   if (signaturePadM15.value) {
     signaturePadM15.value.clear();
@@ -442,14 +419,12 @@ watch(personalInfo, (newVal) => {
 // ================= 智能時數與天數計算 =================
 const calculateLeaveHours = (range) => {
   if (!range || range.length !== 2) return 0;
-  
   let start = new Date(range[0]);
   let end = new Date(range[1]);
   start.setHours(0, 0, 0, 0);
   end.setHours(0, 0, 0, 0);
 
   if (start > end) return 0;
-
   let count = 0;
   let current = new Date(start);
   
@@ -458,7 +433,6 @@ const calculateLeaveHours = (range) => {
     if (dayOfWeek !== 0 && dayOfWeek !== 6) count++;
     current.setDate(current.getDate() + 1);
   }
-  
   return parseFloat((count * 7.2).toFixed(2));
 };
 
@@ -483,7 +457,6 @@ const m15TotalDays = computed(() => {
 const m15TotalHoursText = computed(() => {
   const hrs = m15TotalHours.value;
   if (hrs === 0) return '0 小時 0 分鐘';
-  
   const h = Math.floor(hrs);
   const m = Math.round((hrs - h) * 60);
   return `${h} 小時 ${m} 分鐘`;
@@ -514,7 +487,6 @@ const calculateHours = (timeStr) => {
   if (!timeStr) return 0;
   const str = timeStr.replace(/\s+/g, '');
   if (!str.includes('-')) return 0;
-  
   const [start, end] = str.split('-');
   const parseTime = (t) => {
     if (!t) return null;
@@ -554,6 +526,7 @@ const formatExcelTimeRange = (s1, s2, s3) => {
 
 // ================= 🟢 M15 匯出邏輯 =================
 const exportM15 = async () => {
+  // 🟢 直接在此時獲取最新簽名，確保簽名不會因為 Vue 渲染而遺失
   if (signaturePadM15.value) {
     m15Form.value.signatureImageBase64 = signaturePadM15.value.save("image/png");
   }
@@ -569,7 +542,7 @@ const exportM15 = async () => {
     return;
   }
 
-  if (!m15Form.value.signatureImageBase64) {
+  if (!m15Form.value.signatureImageBase64 || m15Form.value.signatureImageBase64 === state.option.backgroundColor) {
     ElMessage.warning('⚠️ 匯出失敗：請完成手寫簽名！');
     return;
   }
@@ -617,7 +590,6 @@ const exportM15 = async () => {
       const h = Math.floor(m15TotalHours.value);
       const m = Math.round((m15TotalHours.value - h) * 60);
       const excelTimeStr = `共 ${h} 小時hrs ${m} 分鐘mins`;
-
       ws.getCell('E8').value = m15TotalDays.value; 
       ws.getCell('G8').value = excelTimeStr;       
       ws.getCell('O8').value = m15TotalDays.value; 
@@ -649,16 +621,21 @@ const exportM15 = async () => {
       }
     });
 
-    // 🟢 恢復成原版：使用 ext 屬性，指定寫入 B24 與 L24，保持 PNG 格式
+    // 🟢 完美的 PNG 透明寫入方式：指定大小、指定絕對定位防破圖
     if (m15Form.value.signatureImageBase64) {
-      const rawBase64 = m15Form.value.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
+      // 確保正確取得 Base64 編碼本體
+      const rawBase64 = m15Form.value.signatureImageBase64.includes(',') 
+        ? m15Form.value.signatureImageBase64.split(',')[1] 
+        : m15Form.value.signatureImageBase64;
+
       const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
       
-      ws.addImage(imageId, { tl: { col: 1, row: 23 }, ext: { width: 150, height: 60 } }); // B24
-      ws.addImage(imageId, { tl: { col: 11, row: 23 }, ext: { width: 150, height: 60 } }); // L24
+      // 使用 ext 並且加入 editAs: 'absolute'，既能顯示 PNG 又不會讓 Excel 報錯
+      ws.addImage(imageId, { tl: { col: 1.2, row: 23.2 }, ext: { width: 140, height: 50 }, editAs: 'absolute' });
+      ws.addImage(imageId, { tl: { col: 11.2, row: 23.2 }, ext: { width: 140, height: 50 }, editAs: 'absolute' });
     }
 
-    // 🟢 日期改到 B26 / L26
+    // 🟢 日期完美填入 B26 / L26
     const todayDateStr = formatExcelDate(new Date());
     ws.getCell('B26').value = todayDateStr; 
     ws.getCell('B26').alignment = { vertical: 'middle', horizontal: 'left' };
@@ -675,8 +652,9 @@ const exportM15 = async () => {
   }
 };
 
-// ================= 🟢 M15A 匯出邏輯 =================
+// ================= 🟢 M15A 匯出邏輯 (上班時間調動表) =================
 const exportM15A = async () => {
+  // 🟢 直接在此時獲取最新簽名
   if (signaturePad.value) {
     m15aForm.value.signatureImageBase64 = signaturePad.value.save("image/png");
   }
@@ -684,11 +662,13 @@ const exportM15A = async () => {
   const f = m15aForm.value;
   const p = personalInfo.value;
   
-  if (!p.name || !p.dept || !p.phone || !p.position || !f.reason || !f.totalDateRange || f.totalDateRange.length !== 2 || !f.signatureImageBase64) {
-    ElMessage.warning({
-      message: '⚠️ 匯出失敗：請完整填寫個人資料並完成手寫簽名！',
-      duration: 4000
-    });
+  if (!p.name || !p.dept || !p.phone || !p.position || !f.reason || !f.totalDateRange || f.totalDateRange.length !== 2) {
+    ElMessage.warning('⚠️ 匯出失敗：請完整填寫個人資料！');
+    return;
+  }
+
+  if (!f.signatureImageBase64 || f.signatureImageBase64 === state.option.backgroundColor) {
+    ElMessage.warning('⚠️ 匯出失敗：請完成手寫簽名！');
     return;
   }
 
@@ -751,13 +731,17 @@ const exportM15A = async () => {
       }
     });
 
+    // 🟢 完美的 PNG 透明寫入方式：指定大小、指定絕對定位防破圖
     if (f.signatureImageBase64) {
-      const rawBase64 = f.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
+      const rawBase64 = f.signatureImageBase64.includes(',') 
+        ? f.signatureImageBase64.split(',')[1] 
+        : f.signatureImageBase64;
 
       const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
       
-      ws.addImage(imageId, { tl: { col: 1, row: 20 }, ext: { width: 150, height: 60 } }); // B21
-      ws.addImage(imageId, { tl: { col: 11, row: 20 }, ext: { width: 150, height: 60 } }); // L21
+      // 使用 ext 並且加入 editAs: 'absolute'，放置在 B22 (row index 21) 附近
+      ws.addImage(imageId, { tl: { col: 1.1, row: 20.2 }, ext: { width: 140, height: 50 }, editAs: 'absolute' });
+      ws.addImage(imageId, { tl: { col: 11.1, row: 20.2 }, ext: { width: 140, height: 50 }, editAs: 'absolute' });
     }
 
     const todayDateStr = formatExcelDate(new Date());
