@@ -75,7 +75,7 @@
                   <span style="width: 65px; font-weight: bold; color: #606266;">第 {{ index + 1 }} 筆：</span>
                   
                   <template v-if="m15Form.leaveType === '補鐘/補假 Compansention leave'">
-                    <el-input v-model="record.manualStart" placeholder="開始 (如 3/24 14:00)" style="width: 180px;" />
+                    <el-input v-model="record.manualStart" placeholder="開始 (如 14:00)" style="width: 180px;" />
                     <span>至</span>
                     <el-input v-model="record.manualEnd" placeholder="結束 (如 16:30)" style="width: 150px;" />
                     <el-input v-model="record.manualHours" placeholder="時數 (如 2.5)" style="width: 120px; margin-left: 10px;" />
