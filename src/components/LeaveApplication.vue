@@ -128,7 +128,7 @@
             <h4 style="margin-top: 0; color: #606266; border-left: 4px solid #67C23A; padding-left: 10px;">3.0 員工手寫簽署驗證</h4>
             
             <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (簽名顯示於 B24，日期填入 B27)</span>
+              <span style="font-weight: bold; color: #606266;"><span style="color: #F56C6C; margin-right: 4px;">*</span>請在下方框內簽名 (簽名顯示於 B24-C25，日期填入 B26)</span>
               <el-button type="danger" plain size="small" @click="clearSignatureM15">清除重簽</el-button>
             </div>
             
@@ -147,7 +147,7 @@
 
             <el-row :gutter="20">
               <el-col :span="12">
-                <el-form-item label="簽署日期 (B27/L27)">
+                <el-form-item label="簽署日期 (B26/L26)">
                   <el-input :value="getTodayStr()" disabled style="width: 100%;" />
                 </el-form-item>
               </el-col>
@@ -610,9 +610,9 @@ const exportM15 = async () => {
     const formattedTotal = `${formatExcelDate(m15Form.value.totalDateRange[0])} 至 ${formatExcelDate(m15Form.value.totalDateRange[1])}`;
 
     // 安全寫入
-    safeSetCell(ws, 'E4', p.name);
+    safeSetCell(ws, 'F4', p.name);
     safeSetCell(ws, 'H4', p.dept);
-    safeSetCell(ws, 'E5', p.phone);
+    safeSetCell(ws, 'F5', p.phone);
     safeSetCell(ws, 'H5', p.position);
     safeSetCell(ws, 'G7', formattedTotal);
 
@@ -641,15 +641,16 @@ const exportM15 = async () => {
       setCheckboxTick(ws, selectedCells.right, customText);
     }
 
+    const totalRangeDays = parseFloat((calculateLeaveHours(m15Form.value.totalDateRange) / 7.2).toFixed(2));
+    safeSetCell(ws, 'E8', totalRangeDays);
+    safeSetCell(ws, 'O8', totalRangeDays);
+
     if (m15TotalHours.value > 0) {
       const h = Math.floor(m15TotalHours.value);
       const m = Math.round((m15TotalHours.value - h) * 60);
       const excelTimeStr = `共 ${h} 小時hrs ${m} 分鐘mins`;
-
-      safeSetCell(ws, 'E8', m15TotalDays.value); 
-      safeSetCell(ws, 'G8', excelTimeStr);       
-      safeSetCell(ws, 'O8', m15TotalDays.value); 
-      safeSetCell(ws, 'Q8', excelTimeStr);       
+      safeSetCell(ws, 'G8', excelTimeStr);
+      safeSetCell(ws, 'Q8', excelTimeStr);
     }
 
     m15Form.value.records.forEach((r, idx) => {
@@ -681,13 +682,13 @@ const exportM15 = async () => {
       const rawBase64 = m15Form.value.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
       const imageId1 = workbook.addImage({ base64: rawBase64, extension: 'png' });
       const imageId2 = workbook.addImage({ base64: rawBase64, extension: 'png' });
-      ws.addImage(imageId1, { tl: { col: 1, row: 23 }, ext: { width: 140, height: 45 } }); // Excel B24
-      ws.addImage(imageId2, { tl: { col: 11, row: 23 }, ext: { width: 140, height: 45 } }); // Excel L24
+      ws.addImage(imageId1, { tl: { col: 1, row: 23 }, br: { col: 3, row: 25 } }); // B24:C25
+      ws.addImage(imageId2, { tl: { col: 11, row: 23 }, br: { col: 13, row: 25 } }); // L24:M25
     }
 
     const todayDateStr = formatExcelDate(new Date());
-    safeSetCell(ws, 'B27', todayDateStr); 
-    safeSetCell(ws, 'L27', todayDateStr); 
+    safeSetCell(ws, 'B26', todayDateStr);
+    safeSetCell(ws, 'L26', todayDateStr);
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
