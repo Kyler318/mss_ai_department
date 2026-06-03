@@ -540,15 +540,15 @@ const formatExcelTimeRange = (s1, s2, s3) => {
   return lines.join('\n');
 };
 
-// ================= 🟢 [終極防禦] 安全寫入助手 =================
+// ================= 🟢 安全寫入助手 =================
 const safeSetCell = (ws, cellRef, value) => {
   try {
-    if (!cellRef) return; // 增強保護：防止傳入空字串導致報錯
-    let cell = ws.getCell(cellRef);
-    if (cell.isMerged && cell.master) {
-      cell = cell.master;
-    }
-    cell.value = value;
+    if (!cellRef) return;
+    const cell = ws.getCell(cellRef);
+    // type 6 = ValueType.Merge (ExcelJS slave cell)；只有 slave 才是 6，master 不是
+    // 直接寫入 master，避免 slave 的 <c> 元素殘留在 XML 導致 Excel 修復提示
+    const target = (cell.type === 6 && cell.master) ? cell.master : cell;
+    target.value = value;
   } catch (e) {
     console.warn(`Set cell error at ${cellRef}:`, e);
   }
@@ -578,9 +578,11 @@ const exportM15 = async () => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
     
-    const ws = workbook.getWorksheet('M15假期申請表') || workbook.worksheets[0]; 
+    const ws = workbook.getWorksheet('M15假期申請表') || workbook.worksheets[0];
     if (!ws) throw new Error('無法讀取工作表 M15假期申請表！');
-    
+
+    ws.eachRow(() => {});
+
     const finalLeaveType = m15Form.value.leaveType === '其他 others' 
       ? `其他: ${m15Form.value.otherLeaveType}` 
       : m15Form.value.leaveType;
@@ -688,6 +690,9 @@ const exportM15A = async () => {
     
     let ws = workbook.getWorksheet('M15A上班時間調動表') || workbook.worksheets[0];
     if (!ws) throw new Error('無法讀取工作表 M15A上班時間調動表！');
+
+    // 強制 ExcelJS 建立完整 row 模型，避免部分初始化導致 XML 儲存格損壞
+    ws.eachRow(() => {});
 
     // 🟢 左半邊 (原件) 寫入
     safeSetCell(ws, 'C4', p.name);      
