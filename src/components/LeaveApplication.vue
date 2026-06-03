@@ -640,9 +640,10 @@ const exportM15 = async () => {
 
     if (m15Form.value.signatureImageBase64) {
       const rawBase64 = m15Form.value.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
-      const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
-      ws.addImage(imageId, { tl: { col: 1, row: 23 }, ext: { width: 140, height: 45 } }); // Excel B24
-      ws.addImage(imageId, { tl: { col: 11, row: 23 }, ext: { width: 140, height: 45 } }); // Excel L24
+      const imageId1 = workbook.addImage({ base64: rawBase64, extension: 'png' });
+      const imageId2 = workbook.addImage({ base64: rawBase64, extension: 'png' });
+      ws.addImage(imageId1, { tl: { col: 1, row: 23 }, ext: { width: 140, height: 45 } }); // Excel B24
+      ws.addImage(imageId2, { tl: { col: 11, row: 23 }, ext: { width: 140, height: 45 } }); // Excel L24
     }
 
     const todayDateStr = formatExcelDate(new Date());
@@ -731,11 +732,12 @@ const exportM15A = async () => {
     // 🟢 M15A 簽名精確插入：修正偏移量，讓圖片對齊 B24/L24 附近的簽名欄
     if (f.signatureImageBase64) {
       const rawBase64 = f.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
-      const imageId = workbook.addImage({ base64: rawBase64, extension: 'png' });
-      
+      const imageId1 = workbook.addImage({ base64: rawBase64, extension: 'png' });
+      const imageId2 = workbook.addImage({ base64: rawBase64, extension: 'png' });
+
       // row index 22 代表 Excel 的第 23 行 (避免與日期 24 行重疊)
-      ws.addImage(imageId, { tl: { col: 1, row: 22 }, ext: { width: 140, height: 45 } }); 
-      ws.addImage(imageId, { tl: { col: 11, row: 22 }, ext: { width: 140, height: 45 } }); 
+      ws.addImage(imageId1, { tl: { col: 1, row: 22 }, ext: { width: 140, height: 45 } });
+      ws.addImage(imageId2, { tl: { col: 11, row: 22 }, ext: { width: 140, height: 45 } });
     }
 
     // 🟢 日期位置修正：改為真正的 24 行 (B24 / L24) 確保與範本對齊
