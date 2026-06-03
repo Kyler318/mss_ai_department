@@ -729,21 +729,19 @@ const exportM15A = async () => {
       }
     });
 
-    // 🟢 M15A 簽名精確插入：修正偏移量，讓圖片對齊 B24/L24 附近的簽名欄
+    // 🟢 M15A 簽名插入：B22-C22 (left), L22-M22 (right)
     if (f.signatureImageBase64) {
       const rawBase64 = f.signatureImageBase64.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
       const imageId1 = workbook.addImage({ base64: rawBase64, extension: 'png' });
       const imageId2 = workbook.addImage({ base64: rawBase64, extension: 'png' });
 
-      // row index 22 代表 Excel 的第 23 行 (避免與日期 24 行重疊)
-      ws.addImage(imageId1, { tl: { col: 1, row: 22 }, ext: { width: 140, height: 45 } });
-      ws.addImage(imageId2, { tl: { col: 11, row: 22 }, ext: { width: 140, height: 45 } });
+      ws.addImage(imageId1, { tl: { col: 1, row: 21 }, br: { col: 3, row: 22 } });  // B22:C22
+      ws.addImage(imageId2, { tl: { col: 11, row: 21 }, br: { col: 13, row: 22 } }); // L22:M22
     }
 
-    // 🟢 日期位置修正：改為真正的 24 行 (B24 / L24) 確保與範本對齊
     const todayDateStr = formatExcelDate(new Date());
-    safeSetCell(ws, 'B24', todayDateStr); // <--- 已從 B23 修正為 B24
-    safeSetCell(ws, 'L24', todayDateStr); // <--- 已從 L23 修正為 L24
+    safeSetCell(ws, 'B23', todayDateStr);
+    safeSetCell(ws, 'L23', todayDateStr);
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blobType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
