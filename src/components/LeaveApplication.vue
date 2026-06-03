@@ -554,6 +554,30 @@ const safeSetCell = (ws, cellRef, value) => {
   }
 };
 
+// 將指定格的 □ 替換成 ✓，支援 richText 和純字串格式
+const setCheckboxTick = (ws, cellRef, customText = null) => {
+  try {
+    if (!cellRef) return;
+    const cell = ws.getCell(cellRef);
+    const target = (cell.type === 6 && cell.master) ? cell.master : cell;
+    if (target.value && typeof target.value === 'object' && target.value.richText) {
+      target.value = {
+        richText: target.value.richText.map(fragment => {
+          let text = fragment.text.replace(/□/g, '✓');
+          if (customText) text = text.replace(/_+/, customText);
+          return { ...fragment, text };
+        })
+      };
+    } else if (typeof target.value === 'string') {
+      let val = target.value.replace(/□/g, '✓');
+      if (customText) val = val.replace(/_+/, customText);
+      target.value = val;
+    }
+  } catch (e) {
+    console.warn(`Tick cell error at ${cellRef}:`, e);
+  }
+};
+
 // ================= 🟢 M15 匯出邏輯 (假期申請表) =================
 const exportM15 = async () => {
   if (signaturePadM15.value) {
@@ -583,26 +607,39 @@ const exportM15 = async () => {
 
     ws.eachRow(() => {});
 
-    const finalLeaveType = m15Form.value.leaveType === '其他 others' 
-      ? `其他: ${m15Form.value.otherLeaveType}` 
-      : m15Form.value.leaveType;
-      
     const formattedTotal = `${formatExcelDate(m15Form.value.totalDateRange[0])} 至 ${formatExcelDate(m15Form.value.totalDateRange[1])}`;
 
     // 安全寫入
-    safeSetCell(ws, 'E4', p.name);       
-    safeSetCell(ws, 'H4', p.dept);       
-    safeSetCell(ws, 'E5', p.phone);      
-    safeSetCell(ws, 'H5', p.position);   
-    safeSetCell(ws, 'G7', formattedTotal); 
-    safeSetCell(ws, 'C9', `[假期類別]\n${finalLeaveType}`); 
+    safeSetCell(ws, 'E4', p.name);
+    safeSetCell(ws, 'H4', p.dept);
+    safeSetCell(ws, 'E5', p.phone);
+    safeSetCell(ws, 'H5', p.position);
+    safeSetCell(ws, 'G7', formattedTotal);
 
-    safeSetCell(ws, 'O4', p.name);       
-    safeSetCell(ws, 'R4', p.dept);       
-    safeSetCell(ws, 'O5', p.phone);      
-    safeSetCell(ws, 'R5', p.position);   
-    safeSetCell(ws, 'Q7', formattedTotal); 
-    safeSetCell(ws, 'M9', `[假期類別]\n${finalLeaveType}`); 
+    safeSetCell(ws, 'O4', p.name);
+    safeSetCell(ws, 'R4', p.dept);
+    safeSetCell(ws, 'O5', p.phone);
+    safeSetCell(ws, 'R5', p.position);
+    safeSetCell(ws, 'Q7', formattedTotal);
+
+    // 在對應假期類別的格子打 ✓
+    const leaveTypeCells = {
+      '有薪年假 Paid Annual leave':          { left: 'C10', right: 'M10' },
+      '有薪病假 Paid Sick leave':            { left: 'C11', right: 'M11' },
+      '無薪病假 No pay Sick leave':          { left: 'C12', right: 'M12' },
+      '有薪恩恤假 Paid compassionate leave': { left: 'C15', right: 'M15' },
+      '有薪婚假 Paid marriage leave':        { left: 'C16', right: 'M16' },
+      '補鐘/補假 Compansention leave':       { left: 'C17', right: 'M17' },
+      '銷假 Cancel leave':                   { left: 'C19', right: 'M19' },
+      '無薪假期 No pay leave':               { left: 'C20', right: 'M20' },
+      '其他 others':                         { left: 'C21', right: 'M21' },
+    };
+    const selectedCells = leaveTypeCells[m15Form.value.leaveType];
+    if (selectedCells) {
+      const customText = m15Form.value.leaveType === '其他 others' ? m15Form.value.otherLeaveType || '' : null;
+      setCheckboxTick(ws, selectedCells.left, customText);
+      setCheckboxTick(ws, selectedCells.right, customText);
+    }
 
     if (m15TotalHours.value > 0) {
       const h = Math.floor(m15TotalHours.value);
