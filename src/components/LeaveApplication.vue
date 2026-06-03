@@ -616,9 +616,9 @@ const exportM15 = async () => {
     safeSetCell(ws, 'H5', p.position);
     safeSetCell(ws, 'G7', formattedTotal);
 
-    safeSetCell(ws, 'O4', p.name);
+    safeSetCell(ws, 'P4', p.name);
     safeSetCell(ws, 'R4', p.dept);
-    safeSetCell(ws, 'O5', p.phone);
+    safeSetCell(ws, 'P5', p.phone);
     safeSetCell(ws, 'R5', p.position);
     safeSetCell(ws, 'Q7', formattedTotal);
 
@@ -641,15 +641,13 @@ const exportM15 = async () => {
       setCheckboxTick(ws, selectedCells.right, customText);
     }
 
-    const totalRangeDays = parseFloat((calculateLeaveHours(m15Form.value.totalDateRange) / 7.2).toFixed(2));
-    safeSetCell(ws, 'E8', totalRangeDays);
-    safeSetCell(ws, 'O8', totalRangeDays);
-
     if (m15TotalHours.value > 0) {
       const h = Math.floor(m15TotalHours.value);
       const m = Math.round((m15TotalHours.value - h) * 60);
       const excelTimeStr = `共 ${h} 小時hrs ${m} 分鐘mins`;
+      safeSetCell(ws, 'E8', m15TotalDays.value);
       safeSetCell(ws, 'G8', excelTimeStr);
+      safeSetCell(ws, 'O8', m15TotalDays.value);
       safeSetCell(ws, 'Q8', excelTimeStr);
     }
 
